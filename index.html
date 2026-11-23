@@ -1784,7 +1784,14 @@
         }
       }
 
-      const paidVal = parseFloat(document.getElementById('order-paid-amount').value) || 0;
+      const paidEl = document.getElementById('order-paid-amount');
+      paidEl.max = total;
+      let paidVal = parseFloat(paidEl.value) || 0;
+      if (paidVal > total) {
+        paidVal = total;
+        paidEl.value = total;
+        showToast('المدفوع مينفعش يزيد عن إجمالي الأوردر');
+      }
       const remaining = Math.max(0, total - paidVal);
       document.getElementById('order-remaining-debt').textContent = `${formatMoney(remaining)} ج.م`;
     }
@@ -1815,7 +1822,7 @@
       const discount = getOrderDiscount();
       const totalAmount = getOrderGrandTotal();
       const paidInput = document.getElementById('order-paid-amount').value;
-      const paidAmount = paidInput === '' ? 0 : Math.max(0, parseFloat(paidInput));
+      const paidAmount = paidInput === '' ? 0 : Math.min(totalAmount, Math.max(0, parseFloat(paidInput) || 0));
       const debtAdded = Math.max(0, totalAmount - paidAmount);
       const note = document.getElementById('order-note').value.trim();
       const todayStr = new Date().toISOString().split('T')[0];
@@ -3185,10 +3192,10 @@
               const y2 = bodyTop + (idx + 1 + k) * rowH + 31;
               ctx.textAlign = 'right';
               ctx.fillStyle = ln.color;
-              ctx.font = 'bold 19px Cairo, sans-serif';
+              ctx.font = '800 28px Cairo, sans-serif';
               ctx.fillText(ln.label, c5 - 14, y2);
               ctx.textAlign = 'center';
-              ctx.font = '800 20px Cairo, sans-serif';
+              ctx.font = '800 25px Cairo, sans-serif';
               ctx.fillText(ln.amt, (c5 + c6) / 2, y2);
             });
           }
