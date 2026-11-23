@@ -323,6 +323,16 @@
             <span class="text-xs text-amber-100 hidden sm:block">زوّد على حسابه من غير ما تكتب أوردر كامل</span>
           </div>
         </button>
+
+        <button onclick="openDiscountModal()" class="col-span-2 bg-violet-600 hover:bg-violet-700 active:scale-[0.98] transition text-white p-4 rounded-2xl shadow-md flex flex-col sm:flex-row items-center justify-center gap-2.5 text-center">
+          <div class="bg-white/20 p-2.5 rounded-xl">
+            <i data-lucide="badge-percent" class="w-6 h-6 text-white"></i>
+          </div>
+          <div>
+            <span class="block font-extrabold text-base sm:text-lg">+ عمل خصم لصالون</span>
+            <span class="text-xs text-violet-100 hidden sm:block">خصم من الحساب المطلوب</span>
+          </div>
+        </button>
       </div>
 
       <!-- Visit Schedule + Reminders -->
@@ -762,6 +772,10 @@
             <i data-lucide="circle-plus" class="w-4 h-4"></i>
             <span>زيادة مبلغ</span>
           </button>
+          <button onclick="openDiscountFromLedger()" class="bg-violet-600 hover:bg-violet-700 text-white text-xs font-extrabold px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 shadow-xs">
+            <i data-lucide="badge-percent" class="w-4 h-4"></i>
+            <span>عمل خصم</span>
+          </button>
           <button onclick="quickOrderFromLedger()" class="bg-navy-900 hover:bg-navy-800 text-white text-xs font-extrabold px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 shadow-xs">
             <i data-lucide="plus" class="w-4 h-4"></i>
             <span>أوردر جديد</span>
@@ -1033,6 +1047,38 @@
       <div class="flex gap-2 pt-2">
         <button onclick="saveAddDebt()" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-extrabold py-3 rounded-xl shadow-md">تزويد المبلغ</button>
         <button onclick="closeModal('modal-add-debt')" class="px-4 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ==================== MODAL: DISCOUNT FOR SALON ==================== -->
+  <div id="modal-discount" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="text-lg font-extrabold text-navy-900">عمل خصم لصالون</h3>
+        <button onclick="closeModal('modal-discount')" class="p-1.5 rounded-xl bg-slate-100 text-slate-500 hover:text-slate-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <label for="discount-salon" class="block text-xs font-bold text-slate-600 mb-1">الصالون *</label>
+          <select id="discount-salon" onchange="updateDiscountHint()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-bold outline-none focus:border-primary-600"></select>
+        </div>
+        <div>
+          <label for="discount-amount" class="block text-xs font-bold text-slate-600 mb-1">قيمة الخصم (ج.م) *</label>
+          <input type="number" id="discount-amount" min="0" step="any" oninput="updateDiscountHint()" placeholder="مثال: 100" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-bold outline-none focus:border-primary-600" />
+        </div>
+        <div>
+          <label for="discount-note" class="block text-xs font-bold text-slate-600 mb-1">ملاحظة (اختياري)</label>
+          <input type="text" id="discount-note" placeholder="مثال: خصم عميل قديم" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-bold outline-none focus:border-primary-600" />
+        </div>
+        <div id="discount-hint" class="hidden bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-bold text-slate-700"></div>
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button onclick="saveDiscount()" class="flex-1 bg-violet-600 hover:bg-violet-700 text-white font-extrabold py-3 rounded-xl shadow-md">تسجيل الخصم</button>
+        <button onclick="closeModal('modal-discount')" class="px-4 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl">إلغاء</button>
       </div>
     </div>
   </div>
@@ -1338,7 +1384,7 @@
       if ((x = removed('schedule')).length) return `حذف ${nm('salons', x[0].salonId)} من جدول ${DAY_NAMES[x[0].day]}`;
       if ((x = added('transactions')).length) {
         const t = x[0], n = nm('salons', t.salonId);
-        return t.type === 'payment' ? `تحصيل ${m(t.paidAmount)} ج.م من ${n}` : `أوردر لـ ${n} بقيمة ${m(t.totalAmount)} ج.م`;
+        return t.type === 'discount' ? `خصم ${m(t.discountAmount)} ج.م لـ ${n}` : t.type === 'payment' ? `تحصيل ${m(t.paidAmount)} ج.م من ${n}` : `أوردر لـ ${n} بقيمة ${m(t.totalAmount)} ج.م`;
       }
       if ((x = added('suppliers')).length) return `إضافة مورد: ${x[0].name}`;
       if ((x = removed('suppliers')).length) return `حذف مورد: ${x[0].name}`;
@@ -1612,6 +1658,22 @@
         recentContainer.innerHTML = recent.map(tx => {
           const salon = appData.salons.find(s => s.id === tx.salonId);
           const salonName = salon ? salon.name : 'صالون محذوف';
+          if (tx.type === 'discount') {
+            return `
+              <div class="p-3.5 flex items-center justify-between text-sm">
+                <div class="flex items-center gap-3">
+                  <div class="bg-violet-50 text-violet-600 p-2 rounded-xl">
+                    <i data-lucide="badge-percent" class="w-4 h-4"></i>
+                  </div>
+                  <div>
+                    <p class="font-bold text-navy-900">خصم - ${salonName}</p>
+                    <p class="text-xs text-slate-400">${tx.date} ${tx.note ? `• ${tx.note}` : ''}</p>
+                  </div>
+                </div>
+                <span class="text-sm font-extrabold text-violet-600">-${formatMoney(tx.discountAmount)} ج.م</span>
+              </div>
+            `;
+          }
           if (tx.type === 'order') {
             return `
               <div class="p-3.5 flex items-center justify-between text-sm">
@@ -2150,6 +2212,19 @@
         listContainer.innerHTML = `<div class="p-8 text-center text-slate-400 font-bold text-sm">لا توجد حركات مسجلة لهذا الصالون</div>`;
       } else {
         listContainer.innerHTML = txs.map(tx => {
+          if (tx.type === 'discount') {
+            return `
+              <div class="bg-violet-50 rounded-2xl p-4 border border-violet-200 flex items-center justify-between">
+                <div>
+                  <span class="inline-flex items-center gap-1 text-xs font-extrabold text-violet-800">
+                    <i data-lucide="badge-percent" class="w-4 h-4 text-violet-600"></i> خصم
+                  </span>
+                  <p class="text-xs text-slate-500 mt-0.5">${tx.date} ${tx.note ? `• ${tx.note}` : ''}</p>
+                </div>
+                <span class="text-base font-extrabold text-violet-700">-${formatMoney(tx.discountAmount)} ج.م</span>
+              </div>
+            `;
+          }
           if (tx.type === 'order') {
             const itemsSummary = (tx.items || []).map(i => `${i.name} (${i.qty} × ${formatMoney(i.price)})`).join('، ');
             return `
@@ -2366,6 +2441,63 @@
       saveAppData();
       closeModal('modal-add-debt');
       showToast(`تم تزويد ${formatMoney(amount)} ج.م على ${salon.name}`);
+    }
+
+    // ==================== DISCOUNT FOR A SALON ====================
+    function openDiscountFromLedger() {
+      const id = activeLedgerSalonId;
+      closeModal('modal-ledger');
+      openDiscountModal(id);
+    }
+
+    function openDiscountModal(salonId) {
+      const select = document.getElementById('discount-salon');
+      select.innerHTML = `<option value="">-- اختر الصالون --</option>` +
+        appData.salons.map(s => `<option value="${s.id}">${s.name}${Number(s.balance) > 0 ? ` (عليه ${formatMoney(s.balance)} ج.م)` : ' (خالص)'}</option>`).join('');
+      select.value = salonId || '';
+      document.getElementById('discount-amount').value = '';
+      document.getElementById('discount-note').value = '';
+      updateDiscountHint();
+      document.getElementById('modal-discount').classList.remove('hidden');
+    }
+
+    function updateDiscountHint() {
+      const hint = document.getElementById('discount-hint');
+      const salon = appData.salons.find(s => s.id === document.getElementById('discount-salon').value);
+      const amount = parseFloat(document.getElementById('discount-amount').value);
+      if (!salon) { hint.classList.add('hidden'); return; }
+      const current = Number(salon.balance) || 0;
+      hint.classList.remove('hidden');
+      hint.textContent = (!isNaN(amount) && amount > 0)
+        ? `عليه دلوقتي ${formatMoney(current)} ج.م ← هيبقى عليه ${formatMoney(Math.max(0, current - amount))} ج.م`
+        : `عليه دلوقتي ${formatMoney(current)} ج.م`;
+    }
+
+    function saveDiscount() {
+      const salon = appData.salons.find(s => s.id === document.getElementById('discount-salon').value);
+      const amount = parseFloat(document.getElementById('discount-amount').value);
+      const note = document.getElementById('discount-note').value.trim();
+      if (!salon) { showToast('اختار الصالون'); return; }
+      if (isNaN(amount) || amount <= 0) { showToast('اكتب قيمة الخصم'); return; }
+      const owed = Number(salon.balance) || 0;
+      if (owed <= 0) { showToast('الصالون ده حسابه خالص، مفيش عليه فلوس تتخصم'); return; }
+      if (amount > owed) { showToast(`الخصم أكبر من اللي على الصالون (${formatMoney(owed)} ج.م)`); return; }
+
+      const todayStr = new Date().toISOString().split('T')[0];
+      salon.balance = owed - amount;
+      salon.lastTxDate = todayStr;
+      appData.transactions.push({
+        id: 'tx_' + Date.now(),
+        type: 'discount',
+        salonId: salon.id,
+        date: todayStr,
+        timestamp: Date.now(),
+        discountAmount: amount,
+        note
+      });
+      saveAppData();
+      closeModal('modal-discount');
+      showToast(`تم خصم ${formatMoney(amount)} ج.م من حساب ${salon.name}`);
     }
 
     // ==================== PURCHASES & SUPPLIERS ====================
@@ -2769,7 +2901,9 @@
       if (txs.length > 0) {
         msg += `*آخر الحركات:*\n`;
         txs.forEach(t => {
-          if (t.type === 'order') {
+          if (t.type === 'discount') {
+            msg += `• [${t.date}] خصم: ${formatMoney(t.discountAmount)} ج.م\n`;
+          } else if (t.type === 'order') {
             msg += `• [${t.date}] بضاعة بقيمة ${formatMoney(t.totalAmount)} ج.م (مدفوع ${formatMoney(t.paidAmount)} / متبقي ${formatMoney(t.debtAdded)})\n`;
           } else {
             msg += `• [${t.date}] سداد نقدي: ${formatMoney(t.paidAmount)} ج.م\n`;
@@ -3093,6 +3227,17 @@
           ctx.font = '800 20px Cairo, sans-serif';
           const amtText = tx.debtAdded > 0 ? `${formatMoney(tx.debtAdded)} ج.م` : `${formatMoney(tx.totalAmount)} (كاش)`;
           ctx.fillText(amtText, (c5 + c6) / 2, rowY);
+        } else if (tx.type === 'discount') {
+          const dDesc = tx.note ? `خصم (${tx.note})` : 'خصم';
+          ctx.textAlign = 'right';
+          ctx.fillStyle = '#6d28d9';
+          ctx.font = 'bold 19px Cairo, sans-serif';
+          ctx.fillText(dDesc.slice(0, 36), c5 - 14, rowY);
+
+          ctx.textAlign = 'center';
+          ctx.fillStyle = '#6d28d9';
+          ctx.font = '800 20px Cairo, sans-serif';
+          ctx.fillText(`${formatMoney(tx.discountAmount)}- ج.م`, (c5 + c6) / 2, rowY);
         } else {
           // Payment transaction
           const payLabel = opts.payLabel || 'سداد نقدي';
