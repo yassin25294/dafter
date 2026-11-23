@@ -87,6 +87,7 @@
   <style>
     input, textarea, select { -webkit-user-select: text; user-select: text; }
   </style>
+<script>function localDateISO(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}</script>
 </head>
 <body class="text-slate-800 pb-24 md:pb-8 select-none">
   <!-- ==================== LOGIN SCREEN ==================== -->
@@ -585,6 +586,12 @@
           <h3 class="font-extrabold text-sm text-navy-900">الأصناف المحفوظة (لتسهيل كتابة الأوردرات)</h3>
           <span id="products-count-badge" class="text-xs font-bold text-slate-500">0 صنف</span>
         </div>
+        <div class="p-3 border-b border-slate-100">
+          <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2"></i>
+            <input type="text" id="products-search-input" oninput="renderProductsList()" autocomplete="off" placeholder="ابحث عن صنف..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pr-9 pl-3 py-2.5 text-sm font-bold outline-none focus:border-primary-600" />
+          </div>
+        </div>
         <div id="products-list-container" class="divide-y divide-slate-100">
           <!-- Populated dynamically -->
         </div>
@@ -620,6 +627,12 @@
       </div>
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
         <div class="px-4 py-3 border-b border-slate-100 bg-slate-50"><h3 class="font-extrabold text-sm text-navy-900">الموردين (اضغط على المورد لكشف الحساب)</h3></div>
+        <div class="p-3 border-b border-slate-100">
+          <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2"></i>
+            <input type="text" id="suppliers-search-input" oninput="renderPurchasesView()" autocomplete="off" placeholder="ابحث عن مورد بالاسم أو الرقم..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pr-9 pl-3 py-2.5 text-sm font-bold outline-none focus:border-primary-600" />
+          </div>
+        </div>
         <div id="suppliers-list" class="divide-y divide-slate-100"></div>
       </div>
     </section>
@@ -1389,6 +1402,18 @@
           appData = getInitialDemoData();
         }
         ensureSupplierData();
+        // إصلاح تواريخ قديمة اتسجلت بتوقيت جرينتش (بعد 12 بالليل كانت بتتسجل بتاريخ امبارح)
+        try {
+          Object.values(appData).forEach(arr => {
+            if (!Array.isArray(arr)) return;
+            arr.forEach(t => {
+              if (t && typeof t === 'object' && typeof t.date === 'string' && Number(t.timestamp) > 1e12) {
+                const d = new Date(t.timestamp);
+                if (t.date === d.toISOString().split('T')[0]) t.date = localDateISO(d);
+              }
+            });
+          });
+        } catch (e) {}
         lastSavedJSON = JSON.stringify(appData);
       } else {
         appData = getInitialDemoData();
@@ -1480,7 +1505,7 @@
 
     // ==================== 1. DASHBOARD LOGIC ====================
     function renderDashboard() {
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = localDateISO();
 
       // Total Debt across all salons
       const totalDebt = appData.salons.reduce((sum, s) => sum + (Number(s.balance) || 0), 0);
@@ -1688,8 +1713,17 @@
       }
 
       // Link to a saved product (to deduct stock when the order is saved)
-      const linked = appData.products.find(p => p.id === selectedPresetProductId && p.name === name)
-        || appData.products.find(p => p.name === name);
+      let linked = appData.products.find(p => p.id === selectedPresetProductId && p.name === name)
+        || appData.products.find(p => p.name === name)
+        || appData.products.find(p => window.__normAr(p.name) === window.__normAr(name));
+      let autoAdded = false;
+      if (!linked) {
+        // صنف جديد مش موجود: يتسجل أوتوماتيك في قايمة الأصناف
+        const np = { id: 'p_' + Date.now(), name, stock: null, cost: null, price };
+        appData.products.push(np);
+        linked = np;
+        autoAdded = true;
+      }
       const item = { name, qty, price };
       if (linked) {
         item.productId = linked.id;
@@ -1712,6 +1746,10 @@
       priceInput.value = '';
 
       renderOrderItems();
+      if (autoAdded) {
+        saveAppData();
+        showToast('اتسجل الصنف الجديد في قايمة الأصناف');
+      }
     }
 
     function removeOrderItem(index) {
@@ -1825,7 +1863,7 @@
       const paidAmount = paidInput === '' ? 0 : Math.min(totalAmount, Math.max(0, parseFloat(paidInput) || 0));
       const debtAdded = Math.max(0, totalAmount - paidAmount);
       const note = document.getElementById('order-note').value.trim();
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = localDateISO();
 
       // Update Salon Balance
       const salon = appData.salons.find(s => s.id === salonId);
@@ -1921,7 +1959,7 @@
         return;
       }
 
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = localDateISO();
       const salon = appData.salons.find(s => s.id === salonId);
       if (salon) {
         salon.balance = Math.max(0, (Number(salon.balance) || 0) - amount);
@@ -2084,7 +2122,7 @@
         showToast('تم تعديل بيانات الصالون');
       } else {
         const newId = 's_' + Date.now();
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = localDateISO();
         appData.salons.push({
           id: newId,
           name,
@@ -2307,7 +2345,7 @@
       if (tomorrow.length) parts.push(`بكرة عندك: ${names(tomorrow)}`);
       if (!parts.length) return;
       showToast('⏰ ' + parts.join(' | '));
-      const key = 'barber_dist_notified_' + new Date().toISOString().split('T')[0];
+      const key = 'barber_dist_notified_' + localDateISO();
       if ('Notification' in window && Notification.permission === 'granted' && (force || !localStorage.getItem(key))) {
         try { new Notification('تذكير الزيارات', { body: parts.join('\n') }); localStorage.setItem(key, '1'); } catch (e) {}
       }
@@ -2352,7 +2390,7 @@
       if (!salon) { showToast('اختار الصالون'); return; }
       if (isNaN(amount) || amount <= 0) { showToast('اكتب المبلغ اللي هيتزود'); return; }
 
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = localDateISO();
       salon.balance = (Number(salon.balance) || 0) + amount;
       salon.lastTxDate = todayStr;
 
@@ -2414,7 +2452,7 @@
       if (owed <= 0) { showToast('الصالون ده حسابه خالص، مفيش عليه فلوس تتخصم'); return; }
       if (amount > owed) { showToast(`الخصم أكبر من اللي على الصالون (${formatMoney(owed)} ج.م)`); return; }
 
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = localDateISO();
       salon.balance = owed - amount;
       salon.lastTxDate = todayStr;
       appData.transactions.push({
@@ -2434,7 +2472,7 @@
     // ==================== PURCHASES & SUPPLIERS ====================
     let purchaseItems = [];
     let activeSupplierId = null;
-    const todayISO = () => new Date().toISOString().split('T')[0];
+    const todayISO = () => localDateISO();
 
     function supplierOptions(withNew) {
       return `<option value="">-- اختر المورد --</option>` +
@@ -2459,9 +2497,13 @@
             <span class="text-sm font-extrabold text-amber-600">${formatMoney(sp.balance)} ج.م</span>
           </div>`).join('');
 
+      const __sq = window.__normAr ? window.__normAr((document.getElementById('suppliers-search-input') || {}).value || '') : '';
+      const __sw = __sq ? __sq.split(' ') : [];
+      const __supShown = __sw.length ? appData.suppliers.filter(sp => { const n = window.__normAr(sp.name + ' ' + (sp.phone || '')); return __sw.every(w => n.includes(w)); }) : appData.suppliers;
       document.getElementById('suppliers-list').innerHTML = appData.suppliers.length === 0
         ? `<div class="p-6 text-center text-slate-400 text-sm font-bold">لسه مفيش موردين، سجّل أول مشتريات وهيتضاف المورد</div>`
-        : appData.suppliers.map(sp => `
+        : __supShown.length === 0 ? `<div class="p-6 text-center text-slate-400 text-sm font-bold">مفيش نتايج للبحث ده</div>`
+        : __supShown.map(sp => `
           <div onclick="openSupplierLedger('${sp.id}')" class="p-3.5 flex items-center justify-between cursor-pointer hover:bg-slate-50">
             <div class="min-w-0">
               <p class="font-bold text-sm text-navy-900 truncate">${sp.name}</p>
@@ -2477,6 +2519,7 @@
       document.getElementById('purchases-recent').innerHTML = recent.length === 0
         ? `<div class="p-6 text-center text-slate-400 text-sm font-bold">لا توجد مشتريات مسجلة</div>`
         : recent.map(t => purchaseRowHTML(t, true)).join('');
+      if (window.lucide) lucide.createIcons();
     }
 
     function purchaseRowHTML(t, showSupplier) {
@@ -2937,86 +2980,105 @@
       const salon = appData.salons.find(s => s.id === activeLedgerSalonId);
       if (!salon) return;
 
-      generateStatementCanvasImage(salon, statementOnlyTx ? { txs: [statementOnlyTx], footerAmount: Number(statementOnlyTx.paidAmount) || 0, footerLabel: 'المدفوع', orderBreakdown: true } : {});
+      generateStatementCanvasImage(salon, statementOnlyTx ? { txs: [statementOnlyTx], footerAmount: Number(statementOnlyTx.totalAmount) || 0, footerLabel: 'المجموع' } : {});
       document.getElementById('modal-statement-img').classList.remove('hidden');
       lucide.createIcons();
     }
 
     function generateStatementCanvasImage(salon, opts = {}) {
-      const canvas = document.createElement('canvas');
+      // ---- 1) Build rows first (each order item on its own row, then totals) ----
+      const fmtDate = (d) => {
+        const p = (d || '').split('-');
+        return p.length === 3 ? `${p[2]}/${p[1]}` : (d || '');
+      };
+      const salonTxs = (opts.txs || appData.transactions.filter(t => t.salonId === salon.id))
+        .slice()
+        .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+      const rows = [];
+      salonTxs.forEach(tx => {
+        const date = fmtDate(tx.date);
+        if (tx.type === 'order') {
+          (tx.items || []).forEach(it => {
+            const q = Number(it.qty) || 0;
+            const p = Number(it.price) || 0;
+            rows.push({ date, price: formatMoney(p), qty: String(q), desc: it.name || '', amount: formatMoney(q * p), kind: 'item' });
+          });
+          if (tx.discount > 0) rows.push({ date: '', desc: 'خصم', amount: `${formatMoney(tx.discount)}- ج.م`, kind: 'sum', color: '#6d28d9' });
+          rows.push({ date: '', desc: 'المجموع', amount: `${formatMoney(tx.totalAmount)} ج.م`, kind: 'sum', color: inkBlueC() });
+          rows.push({ date: '', desc: 'المدفوع', amount: `${formatMoney(tx.paidAmount)} ج.م`, kind: 'sum', color: '#059669' });
+          rows.push({ date: '', desc: 'الآجل', amount: `${formatMoney(tx.debtAdded)} ج.م`, kind: 'sum', color: '#b91c1c', last: true });
+        } else if (tx.type === 'discount') {
+          rows.push({ date, desc: tx.note ? `خصم (${tx.note})` : 'خصم', amount: `${formatMoney(tx.discountAmount)}- ج.م`, kind: 'sum', color: '#6d28d9', last: true });
+        } else {
+          const payLabel = opts.payLabel || 'سداد نقدي';
+          const payDesc = tx.note ? `${payLabel} (${tx.note})` : (opts.payLabel ? payLabel : 'سداد نقدي من الحساب');
+          rows.push({ date, desc: payDesc, amount: `${formatMoney(tx.paidAmount)}- ج.م`, kind: 'sum', color: '#b91c1c', last: true });
+        }
+      });
+      function inkBlueC() { return '#1e3a8a'; }
+
+      const numRows = Math.max(16, rows.length);
+      const rowH = 46;
+      const headerH = 95;
+      const footerH = 66;
+      const tblTop = 175;
+      const bodyH = numRows * rowH;
       const W = 1200;
-      const H = 1040;
+      const H = tblTop + headerH + bodyH + footerH + 45;
+
+      const canvas = document.createElement('canvas');
       canvas.width = W;
       canvas.height = H;
       const ctx = canvas.getContext('2d');
 
-      // Colors matching the classic paper receipt
       const brownLine = '#7c736d';
       const orangeText = '#e85d1a';
       const graySubText = '#68605a';
       const inkBlue = '#1e3a8a';
-      const inkRed = '#b91c1c';
       const inkDark = '#1e293b';
 
-      // White Paper Background
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, W, H);
 
-      // 1. Top Center Header: STATEMENT OF ACCOUNT + Arabic Title
+      // Top center title
       ctx.textAlign = 'center';
       ctx.fillStyle = graySubText;
       ctx.font = 'bold 26px "Times New Roman", serif';
       ctx.fillText('STATEMENT OF ACCOUNT', W / 2, 46);
-
-      // Orange underline
       ctx.strokeStyle = orangeText;
       ctx.lineWidth = 4;
       ctx.beginPath();
       ctx.moveTo(W / 2 - 175, 56);
       ctx.lineTo(W / 2 + 175, 56);
       ctx.stroke();
-
       ctx.fillStyle = orangeText;
       ctx.font = '800 32px Cairo, sans-serif';
       ctx.fillText('كشف حساب', W / 2, 95);
 
-      // 2. Top Right Date Lines
-      const todayFormatted = new Date().toLocaleDateString('en-GB'); // DD/MM/YYYY
+      // Top-right: Date : ......
+      const todayFormatted = new Date().toLocaleDateString('en-GB');
       ctx.textAlign = 'right';
       ctx.fillStyle = graySubText;
-      ctx.font = 'bold 23px Cairo, sans-serif';
-      const dateLabel = 'التاريخ : ';
-      const dateDots = '.............................';
-      const dateRightX = W - 45;
-      ctx.fillText(dateLabel, dateRightX, 55);
-      const labelW = ctx.measureText(dateLabel).width;
-      const dotsW = ctx.measureText(dateDots).width;
-      const dotsRightX = dateRightX - labelW;
-      ctx.fillText(dateDots, dotsRightX, 55);
-
-      // Date centered over the dotted line
+      ctx.font = '23px "Times New Roman", serif';
+      const dateStr = 'Date : .............................';
+      ctx.fillText(dateStr, W - 45, 55);
+      const dW = ctx.measureText(dateStr).width;
+      const dotsStart = ctx.measureText('Date : ').width;
       ctx.textAlign = 'center';
       ctx.fillStyle = inkBlue;
       ctx.font = 'bold 22px Cairo, sans-serif';
-      ctx.fillText(todayFormatted, dotsRightX - dotsW / 2, 50);
-      ctx.textAlign = 'right';
+      ctx.fillText(todayFormatted, W - 45 - (dW - dotsStart) / 2, 50);
 
-      ctx.fillStyle = graySubText;
-      ctx.font = '23px "Times New Roman", serif';
-      ctx.fillText('Date : .............................', W - 45, 95);
-
-      // 3. Client Name Row
+      // Client row
       const clientY = 148;
       ctx.textAlign = 'right';
       ctx.fillStyle = graySubText;
       ctx.font = 'bold 22px Cairo, sans-serif';
       ctx.fillText(': المطلوب من السيد / السادة', W - 45, clientY);
-
       ctx.textAlign = 'left';
       ctx.font = '20px "Times New Roman", serif';
       ctx.fillText('A / c. of M / s:', 45, clientY);
-
-      // Orange dotted line between left and right labels
       ctx.save();
       ctx.strokeStyle = orangeText;
       ctx.lineWidth = 2.5;
@@ -3026,216 +3088,119 @@
       ctx.lineTo(W - 295, clientY + 2);
       ctx.stroke();
       ctx.restore();
-
-      // Client Name written over dotted line
       ctx.textAlign = 'center';
       ctx.fillStyle = inkBlue;
       ctx.font = '800 26px Cairo, sans-serif';
       const clientDisplay = salon.area ? `${salon.name} (${salon.area})` : salon.name;
       ctx.fillText(clientDisplay, (165 + (W - 295)) / 2, clientY - 5);
 
-      // 4. Main Table Geometry
+      // Table geometry: Date | Price | Quantity | Description | Amount (left -> right)
       const tblLeft = 45;
       const tblRight = W - 45;
       const tblW = tblRight - tblLeft;
-      const tblTop = 175;
-      const headerH = 95;
-      const numRows = 14;
-      const rowH = 46;
-      const bodyH = numRows * rowH;
-      const footerH = 66;
       const tblBottom = tblTop + headerH + bodyH + footerH;
-
-      // Column X boundaries (from Left to Right):
-      // Col 1 (Left): Date / التاريخ (160px)
-      // Col 2: invoice No / رقم الفاتورة (165px)
-      // Col 3: Delivery Note / اذن التسليم (165px)
-      // Col 4: Description / البيان (415px)
-      // Col 5 (Right): Amount / المبلغ (205px)
       const c1 = tblLeft;
-      const c2 = c1 + 160;
-      const c3 = c2 + 165;
-      const c4 = c3 + 165;
-      const c5 = c4 + 415;
+      const c2 = c1 + 150;
+      const c3 = c2 + 150;
+      const c4 = c3 + 130;
+      const c5 = c4 + 475;
       const c6 = tblRight;
 
-      // Outer Table Thick Border
       ctx.strokeStyle = brownLine;
       ctx.lineWidth = 6;
       ctx.strokeRect(tblLeft, tblTop, tblW, tblBottom - tblTop);
-
-      // Header Bottom Thick Line
       const bodyTop = tblTop + headerH;
-      ctx.beginPath();
-      ctx.moveTo(tblLeft, bodyTop);
-      ctx.lineTo(tblRight, bodyTop);
-      ctx.stroke();
-
-      // Footer Top Thick Line
       const footerTop = bodyTop + bodyH;
-      ctx.beginPath();
-      ctx.moveTo(tblLeft, footerTop);
-      ctx.lineTo(tblRight, footerTop);
-      ctx.stroke();
-
-      // Vertical Column Dividers (from tblTop to footerTop)
+      ctx.beginPath(); ctx.moveTo(tblLeft, bodyTop); ctx.lineTo(tblRight, bodyTop); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(tblLeft, footerTop); ctx.lineTo(tblRight, footerTop); ctx.stroke();
       [c2, c3, c4, c5].forEach(x => {
-        ctx.beginPath();
-        ctx.moveTo(x, tblTop);
-        ctx.lineTo(x, footerTop);
-        ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x, tblTop); ctx.lineTo(x, footerTop); ctx.stroke();
       });
 
-      // Column Headers (Arabic Orange + English Gray)
-      const drawColHeader = (xStart, xEnd, arTitle, enLine1, enLine2 = '') => {
+      const drawColHeader = (xStart, xEnd, arTitle, en) => {
         const cx = (xStart + xEnd) / 2;
         ctx.textAlign = 'center';
         ctx.fillStyle = orangeText;
         ctx.font = '800 25px Cairo, sans-serif';
-        ctx.fillText(arTitle, cx, tblTop + 36);
-
+        ctx.fillText(arTitle, cx, tblTop + 38);
         ctx.fillStyle = graySubText;
-        ctx.font = 'bold 19px "Times New Roman", serif';
-        if (enLine2) {
-          ctx.fillText(enLine1, cx, tblTop + 63);
-          ctx.fillText(enLine2, cx, tblTop + 84);
-        } else {
-          ctx.fillText(enLine1, cx, tblTop + 68);
-        }
+        ctx.font = 'bold 20px "Times New Roman", serif';
+        ctx.fillText(en, cx, tblTop + 72);
       };
-
       drawColHeader(c1, c2, 'التاريخ', 'Date');
-      drawColHeader(c2, c3, 'رقم الفاتورة', 'invoice', 'No');
-      drawColHeader(c3, c4, 'اذن التسليم', 'Delivery', 'Note');
+      drawColHeader(c2, c3, 'السعر', 'Price');
+      drawColHeader(c3, c4, 'الكمية', 'Quantity');
       drawColHeader(c4, c5, 'البيان', 'Description');
       drawColHeader(c5, c6, 'المبلغ', 'Amount');
 
-      // Horizontal Dotted Lines for Body Rows
+      // Dotted row lines
       ctx.save();
       ctx.strokeStyle = '#64748b';
       ctx.lineWidth = 1.8;
       ctx.setLineDash([2, 4]);
       for (let r = 1; r < numRows; r++) {
         const y = bodyTop + r * rowH;
-        ctx.beginPath();
-        ctx.moveTo(tblLeft + 3, y);
-        ctx.lineTo(tblRight - 3, y);
-        ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(tblLeft + 3, y); ctx.lineTo(tblRight - 3, y); ctx.stroke();
       }
       ctx.restore();
 
-      // Populate Rows with Salon Transactions (oldest to newest, up to 14 rows)
-      const salonTxs = (opts.txs || appData.transactions.filter(t => t.salonId === salon.id))
-        .slice()
-        .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
-        .slice(-numRows);
+      const fitText = (text, maxW, size, weight) => {
+        let s = size;
+        ctx.font = `${weight} ${s}px Cairo, sans-serif`;
+        while (ctx.measureText(text).width > maxW && s > 12) {
+          s--;
+          ctx.font = `${weight} ${s}px Cairo, sans-serif`;
+        }
+        while (ctx.measureText(text).width > maxW && text.length > 4) text = text.slice(0, -2);
+        return text;
+      };
 
-      salonTxs.forEach((tx, idx) => {
-        const rowY = bodyTop + idx * rowH + 31;
-
-        // Date formatted DD/MM
-        const dParts = (tx.date || '').split('-');
-        const shortDate = dParts.length === 3 ? `${dParts[2]}/${dParts[1]}` : tx.date;
+      rows.forEach((row, idx) => {
+        const y = bodyTop + idx * rowH + 31;
         ctx.textAlign = 'center';
-        ctx.fillStyle = inkDark;
-        ctx.font = 'bold 19px Cairo, sans-serif';
-        ctx.fillText(shortDate, (c1 + c2) / 2, rowY);
-
-        // Invoice / Receipt No
-        const invNo = '#' + String(tx.id || '').slice(-4);
-        ctx.fillStyle = graySubText;
-        ctx.font = 'bold 18px Cairo, sans-serif';
-        ctx.fillText(invNo, (c2 + c3) / 2, rowY);
-
-        // Description & Amount
-        if (tx.type === 'order') {
-          const itemNames = (tx.items || []).map(i => `${i.name} (${i.qty})`).join(' + ');
-          let desc = `بضاعة: ${itemNames}`;
-          if (!opts.orderBreakdown) {
-            if (tx.paidAmount > 0 && tx.debtAdded > 0) {
-              desc += ` [دفع ${formatMoney(tx.paidAmount)}]`;
-            } else if (tx.debtAdded === 0) {
-              desc += ` [خالص كاش]`;
-            }
-            if (tx.discount > 0) desc += ` [خصم ${formatMoney(tx.discount)}]`;
-          }
-          ctx.textAlign = 'right';
+        if (row.date) {
           ctx.fillStyle = inkDark;
-          // صغّر الخط عشان بيان الأصناف يتكتب كله بدل ما يتقص
-          const maxDescW = (c5 - c4) - 28;
-          let descSize = 19;
-          ctx.font = `bold ${descSize}px Cairo, sans-serif`;
-          while (ctx.measureText(desc).width > maxDescW && descSize > 12) {
-            descSize--;
-            ctx.font = `bold ${descSize}px Cairo, sans-serif`;
-          }
-          while (ctx.measureText(desc).width > maxDescW && desc.length > 4) {
-            desc = desc.slice(0, -2);
-          }
-          ctx.fillText(desc, c5 - 14, rowY);
-
-          ctx.textAlign = 'center';
-          ctx.fillStyle = tx.debtAdded > 0 ? inkDark : '#059669';
-          ctx.font = '800 20px Cairo, sans-serif';
-          const amtText = opts.orderBreakdown
-            ? `${formatMoney(tx.totalAmount)} ج.م`
-            : (tx.debtAdded > 0 ? `${formatMoney(tx.debtAdded)} ج.م` : `${formatMoney(tx.totalAmount)} (كاش)`);
-          ctx.fillText(amtText, (c5 + c6) / 2, rowY);
-
-          // تفصيل الأوردر: إجمالي / خصم / مدفوع / آجل
-          if (opts.orderBreakdown) {
-            const lines = [];
-            if (tx.discount > 0) lines.push({ label: `خصم (من ${formatMoney(tx.subtotal)})`, amt: `${formatMoney(tx.discount)}- ج.م`, color: '#6d28d9' });
-            lines.push({ label: 'المدفوع', amt: `${formatMoney(tx.paidAmount)} ج.م`, color: '#059669' });
-            lines.push({ label: 'الآجل (الباقي)', amt: `${formatMoney(tx.debtAdded)} ج.م`, color: inkRed });
-            lines.forEach((ln, k) => {
-              const y2 = bodyTop + (idx + 1 + k) * rowH + 31;
-              ctx.textAlign = 'right';
-              ctx.fillStyle = ln.color;
-              ctx.font = '800 28px Cairo, sans-serif';
-              ctx.fillText(ln.label, c5 - 14, y2);
-              ctx.textAlign = 'center';
-              ctx.font = '800 25px Cairo, sans-serif';
-              ctx.fillText(ln.amt, (c5 + c6) / 2, y2);
-            });
-          }
-        } else if (tx.type === 'discount') {
-          const dDesc = tx.note ? `خصم (${tx.note})` : 'خصم';
-          ctx.textAlign = 'right';
-          ctx.fillStyle = '#6d28d9';
           ctx.font = 'bold 19px Cairo, sans-serif';
-          ctx.fillText(dDesc.slice(0, 36), c5 - 14, rowY);
-
+          ctx.fillText(row.date, (c1 + c2) / 2, y);
+        }
+        if (row.kind === 'item') {
+          ctx.fillStyle = inkDark;
+          ctx.font = 'bold 20px Cairo, sans-serif';
+          ctx.fillText(row.price, (c2 + c3) / 2, y);
+          ctx.fillText(row.qty, (c3 + c4) / 2, y);
+          ctx.textAlign = 'right';
+          const t = fitText(row.desc, (c5 - c4) - 28, 20, 'bold');
+          ctx.fillText(t, c5 - 14, y);
           ctx.textAlign = 'center';
-          ctx.fillStyle = '#6d28d9';
           ctx.font = '800 20px Cairo, sans-serif';
-          ctx.fillText(`${formatMoney(tx.discountAmount)}- ج.م`, (c5 + c6) / 2, rowY);
+          ctx.fillText(`${row.amount}`, (c5 + c6) / 2, y);
         } else {
-          // Payment transaction
-          const payLabel = opts.payLabel || 'سداد نقدي';
-          const payDesc = tx.note ? `${payLabel} (${tx.note})` : (opts.payLabel ? payLabel : 'سداد نقدي من الحساب');
+          ctx.fillStyle = row.color;
           ctx.textAlign = 'right';
-          ctx.fillStyle = inkRed;
-          ctx.font = 'bold 19px Cairo, sans-serif';
-          ctx.fillText(payDesc.slice(0, 36), c5 - 14, rowY);
-
+          const t = fitText(row.desc, (c5 - c4) - 28, 28, '800');
+          ctx.fillText(t, c5 - 14, y);
           ctx.textAlign = 'center';
-          ctx.fillStyle = inkRed;
-          ctx.font = '800 20px Cairo, sans-serif';
-          ctx.fillText(`${formatMoney(tx.paidAmount)}- ج.م`, (c5 + c6) / 2, rowY);
+          ctx.font = '800 25px Cairo, sans-serif';
+          ctx.fillText(row.amount, (c5 + c6) / 2, y);
+        }
+        // solid separator after each block's last row
+        if (row.last) {
+          ctx.save();
+          ctx.strokeStyle = brownLine;
+          ctx.lineWidth = 2.5;
+          const ly = bodyTop + (idx + 1) * rowH;
+          if (idx + 1 < numRows) { ctx.beginPath(); ctx.moveTo(tblLeft + 3, ly); ctx.lineTo(tblRight - 3, ly); ctx.stroke(); }
+          ctx.restore();
         }
       });
 
-      // 5. Footer Row (Total, Written Arabic Words, المجموع, Numeric Total Box)
+      // Footer
       const fMidY = footerTop + 42;
-
-      // Left "Total" label
       ctx.textAlign = 'left';
       ctx.fillStyle = graySubText;
       ctx.font = 'bold 30px "Times New Roman", serif';
       ctx.fillText('Total', tblLeft + 18, fMidY);
 
-      // Middle-Left Bordered Box for Written Arabic Amount
       const wordsBoxX = tblLeft + 115;
       const wordsBoxW = 550;
       const boxY = footerTop + 12;
@@ -3243,7 +3208,6 @@
       ctx.strokeStyle = '#9ca3af';
       ctx.lineWidth = 2;
       ctx.strokeRect(wordsBoxX, boxY, wordsBoxW, boxH);
-
       ctx.textAlign = 'center';
       ctx.fillStyle = inkDark;
       ctx.font = 'bold 19px Cairo, sans-serif';
@@ -3251,32 +3215,24 @@
       const arabicWords = footerAmt > 0 ? numberToArabicWords(footerAmt) : 'صفر جنيه مصري فقط لا غير';
       ctx.fillText(arabicWords, wordsBoxX + wordsBoxW / 2, boxY + 28);
 
-      // Orange "المجموع" label
-      ctx.textAlign = 'center';
       ctx.fillStyle = orangeText;
       ctx.font = '800 30px Cairo, sans-serif';
       ctx.fillText(opts.footerLabel || 'المجموع', (wordsBoxX + wordsBoxW + c5) / 2 + 12, fMidY);
 
-      // Right Bordered Box for Numeric Balance
       const numBoxX = c5 + 14;
       const numBoxW = (c6 - c5) - 28;
       ctx.strokeStyle = '#9ca3af';
       ctx.lineWidth = 2;
       ctx.strokeRect(numBoxX, boxY, numBoxW, boxH);
-
-      ctx.textAlign = 'center';
       ctx.fillStyle = (opts.footerAmount !== undefined || Number(salon.balance) > 0) ? inkBlue : '#059669';
       ctx.font = '800 23px Cairo, sans-serif';
       ctx.fillText(`${formatMoney(footerAmt)} ج.م`, numBoxX + numBoxW / 2, boxY + 29);
 
-      // Export to Preview Image & Blob
+      // Export
       const dataUrl = canvas.toDataURL('image/png');
       document.getElementById('statement-preview-img').src = dataUrl;
       currentStatementFilename = `كشف-حساب-${salon.name.replace(/\s+/g, '-')}.png`;
-
-      canvas.toBlob(blob => {
-        currentStatementBlob = blob;
-      }, 'image/png');
+      canvas.toBlob(blob => { currentStatementBlob = blob; }, 'image/png');
     }
 
     function downloadStatementImage() {
@@ -3438,14 +3394,22 @@
 
     function renderProductsList() {
       const container = document.getElementById('products-list-container');
-      document.getElementById('products-count-badge').textContent = `${appData.products.length} صنف`;
+      const qEl = document.getElementById('products-search-input');
+      const q = window.__normAr ? window.__normAr(qEl ? qEl.value : '') : '';
+      const words = q ? q.split(' ') : [];
+      const shown = words.length ? appData.products.filter(p => { const n = window.__normAr(p.name); return words.every(w => n.includes(w)); }) : appData.products;
+      document.getElementById('products-count-badge').textContent = words.length ? `${shown.length} من ${appData.products.length} صنف` : `${appData.products.length} صنف`;
 
       if (appData.products.length === 0) {
         container.innerHTML = `<div class="p-6 text-center text-slate-400 text-sm font-bold">مفيش أصناف محفوظة حالياً</div>`;
         return;
       }
+      if (shown.length === 0) {
+        container.innerHTML = `<div class="p-6 text-center text-slate-400 text-sm font-bold">مفيش نتايج للبحث ده</div>`;
+        return;
+      }
 
-      container.innerHTML = appData.products.map(p => `
+      container.innerHTML = shown.map(p => `
         <div class="p-3.5 flex items-center justify-between hover:bg-slate-50">
           <div>
             <p class="font-bold text-sm text-navy-900">${p.name}</p>
@@ -3471,6 +3435,7 @@
           </div>
         </div>
       `).join('');
+      if (window.lucide) lucide.createIcons();
     }
 
     // ==================== MODALS & BACKUP HELPERS ====================
@@ -3487,7 +3452,7 @@
       const blob = new Blob([dataStr], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      const dateStr = new Date().toISOString().split('T')[0];
+      const dateStr = localDateISO();
       a.href = url;
       a.download = `نسخة-احتياطية-الصالونات-${dateStr}.json`;
       document.body.appendChild(a);
@@ -3545,6 +3510,117 @@
   </script>
 <script>
 if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {})); }
+</script>
+
+<script>
+/* ===== قوايم قابلة للبحث: أي <select> في البرنامج بيفتح بخانة سيرش ===== */
+(function () {
+  const norm = s => String(s == null ? '' : s).toLowerCase()
+    .replace(/[\u064B-\u0652\u0640]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي')
+    .replace(/\s+/g, ' ').trim();
+  window.__normAr = norm;
+
+  const proto = HTMLSelectElement.prototype;
+  const valDesc = Object.getOwnPropertyDescriptor(proto, 'value');
+  const idxDesc = Object.getOwnPropertyDescriptor(proto, 'selectedIndex');
+  const CHEV = '<svg class="w-4 h-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
+  let overlay = null;
+
+  function sync(sel) {
+    const b = sel._ssBtn; if (!b) return;
+    const o = sel.options[idxDesc.get.call(sel)];
+    const txt = o ? o.textContent : '';
+    const span = b.firstChild;
+    span.textContent = txt || '—';
+    span.classList.toggle('text-slate-400', !o || o.value === '');
+  }
+
+  function closeOverlay() { if (overlay) { overlay.remove(); overlay = null; document.removeEventListener('keydown', onKey, true); } }
+  function onKey(e) { if (e.key === 'Escape') { e.stopPropagation(); closeOverlay(); } }
+
+  function openOverlay(sel) {
+    closeOverlay();
+    overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 z-[80] bg-slate-900/60 flex items-end sm:items-center justify-center p-0 sm:p-4';
+    overlay.innerHTML =
+      '<div class="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[75vh]">' +
+        '<div class="p-3 border-b border-slate-100 flex items-center gap-2">' +
+          '<input type="text" autocomplete="off" placeholder="ابحث..." class="ss-q flex-1 bg-slate-50 border border-slate-200 focus:border-primary-600 rounded-xl px-3.5 py-2.5 text-sm font-bold outline-none" />' +
+          '<button type="button" class="ss-x p-2 rounded-xl bg-slate-100 text-slate-500 font-extrabold leading-none w-9 h-9">✕</button>' +
+        '</div>' +
+        '<div class="ss-list overflow-y-auto flex-1 divide-y divide-slate-100"></div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    const q = overlay.querySelector('.ss-q'), list = overlay.querySelector('.ss-list');
+    const cur = valDesc.get.call(sel);
+
+    function pick(val) {
+      valDesc.set.call(sel, val); sync(sel);
+      closeOverlay();
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    function render() {
+      const words = norm(q.value).split(' ').filter(Boolean);
+      list.innerHTML = '';
+      let n = 0, first = null;
+      Array.from(sel.options).forEach(o => {
+        if (o.disabled && o.value !== '') return;
+        if (words.length && o.value === '') return;
+        const t = norm(o.textContent);
+        if (words.length && !words.every(w => t.includes(w))) return;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        const isSel = o.value === cur;
+        btn.className = 'w-full text-right px-4 py-3 text-sm font-bold hover:bg-slate-50 active:bg-slate-100 ' +
+          (o.value === '' ? 'text-slate-400 ' : 'text-navy-900 ') + (isSel ? 'bg-primary-50 text-primary-700' : '');
+        btn.textContent = o.textContent;
+        btn.onclick = () => pick(o.value);
+        list.appendChild(btn); n++; if (!first) first = o.value;
+      });
+      if (!n) list.innerHTML = '<div class="p-6 text-center text-slate-400 text-sm font-bold">مفيش نتايج للبحث ده</div>';
+      list._first = n ? first : null;
+    }
+    q.addEventListener('input', render);
+    q.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); const f = list._first; if (f !== null && f !== undefined) { const btns = list.querySelectorAll('button'); if (btns.length) btns[0].click(); } } });
+    overlay.addEventListener('mousedown', e => { if (e.target === overlay) closeOverlay(); });
+    overlay.querySelector('.ss-x').onclick = closeOverlay;
+    document.addEventListener('keydown', onKey, true);
+    render();
+    setTimeout(() => q.focus(), 30);
+    const act = list.querySelector('.bg-primary-50'); if (act) act.scrollIntoView({ block: 'center' });
+  }
+
+  function enhance(sel) {
+    if (sel._ssBtn || sel.multiple) return;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = sel.className + ' flex items-center justify-between gap-2 text-right cursor-pointer';
+    b.innerHTML = '<span class="truncate flex-1 text-right"></span>' + CHEV;
+    b.addEventListener('click', () => { if (!sel.disabled) openOverlay(sel); });
+    sel._ssBtn = b;
+    sel.style.display = 'none';
+    sel.insertAdjacentElement('afterend', b);
+    Object.defineProperty(sel, 'value', { configurable: true, get() { return valDesc.get.call(this); }, set(v) { valDesc.set.call(this, v); sync(this); } });
+    Object.defineProperty(sel, 'selectedIndex', { configurable: true, get() { return idxDesc.get.call(this); }, set(v) { idxDesc.set.call(this, v); sync(this); } });
+    sync(sel);
+  }
+
+  function scan(root) {
+    if (root.nodeType !== 1) return;
+    if (root.tagName === 'SELECT') enhance(root);
+    root.querySelectorAll && root.querySelectorAll('select').forEach(enhance);
+  }
+
+  new MutationObserver(muts => {
+    for (const m of muts) {
+      if (m.target.tagName === 'SELECT' && m.target._ssBtn) sync(m.target);
+      m.addedNodes.forEach(scan);
+    }
+  }).observe(document.body, { childList: true, subtree: true });
+
+  scan(document.body);
+  if (window.refreshAllViews) { try { renderProductsList(); renderPurchasesView(); } catch (e) {} }
+})();
 </script>
 </body>
 </html>
