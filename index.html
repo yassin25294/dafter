@@ -478,6 +478,12 @@
           </div>
 
           <div>
+            <label for="order-discount" class="block text-sm font-bold text-slate-800 mb-1.5">خصم على الأوردر (ج.م):</label>
+            <input type="number" id="order-discount" oninput="recalcOrderTotals()" placeholder="0" min="0" step="any" class="w-full bg-white border-2 border-violet-300 focus:border-violet-500 rounded-xl px-4 py-2.5 text-lg font-extrabold text-violet-700 outline-none" />
+            <p id="order-discount-line" class="hidden text-xs font-bold text-violet-700 mt-1.5"></p>
+          </div>
+
+          <div>
             <div class="flex items-center justify-between mb-1.5">
               <label class="text-sm font-bold text-slate-800">المدفوع كاش دلوقتي (ج.م):</label>
               <div class="flex gap-1.5">
@@ -1252,82 +1258,8 @@
     // Storage Keys
     const STORAGE_KEY = 'barber_dist_app_v1';
 
-    // Default Demo Data
-    const getInitialDemoData = () => {
-      const today = new Date().toISOString().split('T')[0];
-      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-      const threeDaysAgo = new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0];
-
-      return {
-        salons: [
-          { id: 's1', name: 'صالون البرنس - محمد', area: 'محطة الرمل', phone: '01012345678', balance: 1450, lastTxDate: yesterday },
-          { id: 's2', name: 'صالون الإيطالي - كابتن علي', area: 'سيدي جابر', phone: '01123456789', balance: 600, lastTxDate: today },
-          { id: 's3', name: 'صالون الفخامة', area: 'سموحة', phone: '01234567890', balance: 0, lastTxDate: threeDaysAgo }
-        ],
-        products: [
-          { id: 'p1', stock: 40, cost: 140, name: 'علبة شفرات حلاقة (100 شفرة)', price: 180 },
-          { id: 'p2', stock: 25, cost: 70, name: 'كريم شعر احترافي 500 مل', price: 95 },
-          { id: 'p3', stock: 4, cost: 520, name: 'ماكينة تحديد زيرو', price: 650 },
-          { id: 'p4', stock: 30, cost: 80, name: 'باكت فوط استخدام مرة واحدة (50 فوطة)', price: 110 },
-          { id: 'p5', stock: 12, cost: 60, name: 'سبراي مثبت شعر 400 مل', price: 85 }
-        ],
-        transactions: [
-          {
-            id: 't1',
-            type: 'order',
-            salonId: 's1',
-            date: threeDaysAgo,
-            timestamp: Date.now() - 3 * 86400000,
-            items: [
-              { name: 'ماكينة تحديد زيرو', qty: 2, price: 650 },
-              { name: 'علبة شفرات حلاقة (100 شفرة)', qty: 2, price: 180 }
-            ],
-            totalAmount: 1660,
-            paidAmount: 210,
-            debtAdded: 1450,
-            note: 'دفع عربون والباقي الأسبوع الجاي'
-          },
-          {
-            id: 't2',
-            type: 'order',
-            salonId: 's2',
-            date: yesterday,
-            timestamp: Date.now() - 86400000,
-            items: [
-              { name: 'كريم شعر احترافي 500 مل', qty: 6, price: 95 },
-              { name: 'سبراي مثبت شعر 400 مل', qty: 4, price: 85 }
-            ],
-            totalAmount: 910,
-            paidAmount: 110,
-            debtAdded: 800,
-            note: ''
-          },
-          {
-            id: 't3',
-            type: 'payment',
-            salonId: 's2',
-            date: today,
-            timestamp: Date.now() - 3600000,
-            paidAmount: 200,
-            note: 'تحصيل دفعة نقدية'
-          },
-          {
-            id: 't4',
-            type: 'order',
-            salonId: 's3',
-            date: threeDaysAgo,
-            timestamp: Date.now() - 3 * 86400000,
-            items: [
-              { name: 'باكت فوط استخدام مرة واحدة (50 فوطة)', qty: 3, price: 110 }
-            ],
-            totalAmount: 330,
-            paidAmount: 330,
-            debtAdded: 0,
-            note: 'كاش فوري'
-          }
-        ]
-      };
-    };
+    // Starting data (loaded only when this device has no saved data yet)
+    const getInitialDemoData = () => JSON.parse("{\n  \"salons\": [\n    {\n      \"id\": \"s_1795403967842\",\n      \"name\": \"محمد عبدو صالون\",\n      \"area\": \"لوران\",\n      \"phone\": \"\",\n      \"balance\": 2600,\n      \"lastTxDate\": \"2026-11-23\"\n    },\n    {\n      \"id\": \"s_1795403976382\",\n      \"name\": \"نوح\",\n      \"area\": \"ميامي\",\n      \"phone\": \"\",\n      \"balance\": 0,\n      \"lastTxDate\": \"2026-11-23\"\n    },\n    {\n      \"id\": \"s_1795403986978\",\n      \"name\": \"Bross\",\n      \"area\": \"ميامي\",\n      \"phone\": \"\",\n      \"balance\": 0,\n      \"lastTxDate\": \"2026-11-23\"\n    },\n    {\n      \"id\": \"s_1795403993270\",\n      \"name\": \"السيد\",\n      \"area\": \"ميامي\",\n      \"phone\": \"\",\n      \"balance\": 0,\n      \"lastTxDate\": \"2026-11-23\"\n    }\n  ],\n  \"products\": [\n    {\n      \"id\": \"p_1795404037566\",\n      \"name\": \"فوط قص\",\n      \"stock\": 0,\n      \"cost\": 500,\n      \"price\": 600\n    },\n    {\n      \"id\": \"p_1795404053784\",\n      \"name\": \"امشاط\",\n      \"stock\": 9,\n      \"cost\": 30,\n      \"price\": 40\n    },\n    {\n      \"id\": \"p_1795404062846\",\n      \"name\": \"مراية\",\n      \"stock\": 0,\n      \"cost\": 500,\n      \"price\": 600\n    },\n    {\n      \"id\": \"p_1795404069954\",\n      \"name\": \"كرسي\",\n      \"stock\": 3,\n      \"cost\": 1000,\n      \"price\": 2000\n    },\n    {\n      \"id\": \"p_1795404130146_0\",\n      \"name\": \"سشوار\",\n      \"stock\": 5,\n      \"cost\": 200,\n      \"price\": 300\n    }\n  ],\n  \"transactions\": [\n    {\n      \"id\": \"tx_1795404182276\",\n      \"type\": \"order\",\n      \"salonId\": \"s_1795403967842\",\n      \"date\": \"2026-11-23\",\n      \"timestamp\": 1795404182276,\n      \"items\": [\n        {\n          \"name\": \"فوط قص\",\n          \"qty\": 6,\n          \"price\": 600,\n          \"productId\": \"p_1795404037566\"\n        },\n        {\n          \"name\": \"مراية\",\n          \"qty\": 1,\n          \"price\": 600,\n          \"productId\": \"p_1795404062846\"\n        },\n        {\n          \"name\": \"كرسي\",\n          \"qty\": 2,\n          \"price\": 2000,\n          \"productId\": \"p_1795404069954\"\n        }\n      ],\n      \"totalAmount\": 8200,\n      \"paidAmount\": 4100,\n      \"debtAdded\": 4100,\n      \"note\": \"\"\n    },\n    {\n      \"id\": \"tx_1795404237784\",\n      \"type\": \"order\",\n      \"salonId\": \"s_1795403976382\",\n      \"date\": \"2026-11-23\",\n      \"timestamp\": 1795404237784,\n      \"items\": [\n        {\n          \"name\": \"امشاط\",\n          \"qty\": 1,\n          \"price\": 40,\n          \"productId\": \"p_1795404053784\"\n        },\n        {\n          \"name\": \"سشوار\",\n          \"qty\": 1,\n          \"price\": 300,\n          \"productId\": \"p_1795404130146_0\"\n        }\n      ],\n      \"totalAmount\": 340,\n      \"paidAmount\": 340,\n      \"debtAdded\": 0,\n      \"note\": \"\"\n    },\n    {\n      \"id\": \"tx_1795404248199\",\n      \"type\": \"order\",\n      \"salonId\": \"s_1795403967842\",\n      \"date\": \"2026-11-23\",\n      \"timestamp\": 1795404248199,\n      \"items\": [\n        {\n          \"name\": \"مبلغ إضافي\",\n          \"qty\": 1,\n          \"price\": 500\n        }\n      ],\n      \"totalAmount\": 500,\n      \"paidAmount\": 0,\n      \"debtAdded\": 500,\n      \"note\": \"\"\n    },\n    {\n      \"id\": \"tx_1795404299194\",\n      \"type\": \"order\",\n      \"salonId\": \"s_1795403976382\",\n      \"date\": \"2026-11-23\",\n      \"timestamp\": 1795404299194,\n      \"items\": [\n        {\n          \"name\": \"فوط قص\",\n          \"qty\": 6,\n          \"price\": 600,\n          \"productId\": \"p_1795404037566\"\n        },\n        {\n          \"name\": \"مراية\",\n          \"qty\": 3,\n          \"price\": 600,\n          \"productId\": \"p_1795404062846\"\n        }\n      ],\n      \"totalAmount\": 5400,\n      \"paidAmount\": 5400,\n      \"debtAdded\": 0,\n      \"note\": \"\"\n    },\n    {\n      \"id\": \"tx_1795404311302\",\n      \"type\": \"payment\",\n      \"salonId\": \"s_1795403967842\",\n      \"date\": \"2026-11-23\",\n      \"timestamp\": 1795404311302,\n      \"paidAmount\": 2000,\n      \"note\": \"\"\n    }\n  ],\n  \"suppliers\": [\n    {\n      \"id\": \"sup_1795404003758\",\n      \"name\": \"احمد سعد\",\n      \"phone\": \"\",\n      \"balance\": 0\n    },\n    {\n      \"id\": \"sup_1795404016965\",\n      \"name\": \"اسامه صبحي\",\n      \"phone\": \"\",\n      \"balance\": 0\n    }\n  ],\n  \"purchases\": [\n    {\n      \"id\": \"pur_1795404094768\",\n      \"type\": \"purchase\",\n      \"supplierId\": \"sup_1795404003758\",\n      \"date\": \"2026-11-23\",\n      \"timestamp\": 1795404094768,\n      \"items\": [\n        {\n          \"name\": \"فوط قص\",\n          \"qty\": 3,\n          \"price\": 500\n        }\n      ],\n      \"totalAmount\": 1500,\n      \"paidAmount\": 1500,\n      \"debtAdded\": 0,\n      \"note\": \"\"\n    },\n    {\n      \"id\": \"pur_1795404130146\",\n      \"type\": \"purchase\",\n      \"supplierId\": \"sup_1795404016965\",\n      \"date\": \"2026-11-23\",\n      \"timestamp\": 1795404130146,\n      \"items\": [\n        {\n          \"name\": \"سشوار\",\n          \"qty\": 6,\n          \"price\": 200\n        }\n      ],\n      \"totalAmount\": 1200,\n      \"paidAmount\": 1200,\n      \"debtAdded\": 0,\n      \"note\": \"\"\n    }\n  ],\n  \"schedule\": []\n}");
 
     // Global State
     let appData = { salons: [], products: [], transactions: [] };
@@ -1683,7 +1615,7 @@
                   </div>
                   <div>
                     <p class="font-bold text-navy-900">أوردر بضاعة - ${salonName}</p>
-                    <p class="text-xs text-slate-400">${tx.date} • الإجمالي ${formatMoney(tx.totalAmount)} ج.م</p>
+                    <p class="text-xs text-slate-400">${tx.date} • الإجمالي ${formatMoney(tx.totalAmount)} ج.م${tx.discount > 0 ? ` • خصم ${formatMoney(tx.discount)}` : ''}</p>
                   </div>
                 </div>
                 <div class="text-left">
@@ -1829,6 +1761,7 @@
     function clearOrderDraft() {
       currentOrderItems = [];
       document.getElementById('order-paid-amount').value = '';
+      document.getElementById('order-discount').value = '';
       document.getElementById('order-note').value = '';
       renderOrderItems();
     }
@@ -1860,13 +1793,35 @@
       lucide.createIcons();
     }
 
-    function getOrderGrandTotal() {
+    function getOrderSubtotal() {
       return currentOrderItems.reduce((sum, item) => sum + (item.qty * item.price), 0);
+    }
+
+    function getOrderDiscount() {
+      const el = document.getElementById('order-discount');
+      const v = el ? parseFloat(el.value) : 0;
+      if (isNaN(v) || v <= 0) return 0;
+      return Math.min(v, getOrderSubtotal());
+    }
+
+    // Total after discount (this is what the salon owes for the order)
+    function getOrderGrandTotal() {
+      return getOrderSubtotal() - getOrderDiscount();
     }
 
     function recalcOrderTotals() {
       const total = getOrderGrandTotal();
+      const discount = getOrderDiscount();
       document.getElementById('order-grand-total').textContent = `${formatMoney(total)} ج.م`;
+      const line = document.getElementById('order-discount-line');
+      if (line) {
+        const raw = parseFloat(document.getElementById('order-discount').value);
+        line.classList.toggle('hidden', !(discount > 0));
+        if (discount > 0) {
+          line.textContent = `${formatMoney(getOrderSubtotal())} - ${formatMoney(discount)} (خصم) = ${formatMoney(getOrderGrandTotal())} ج.م` +
+            (raw > discount ? ' (الخصم مينفعش يزيد عن إجمالي الأوردر)' : '');
+        }
+      }
 
       const paidVal = parseFloat(document.getElementById('order-paid-amount').value) || 0;
       const remaining = Math.max(0, total - paidVal);
@@ -1895,6 +1850,8 @@
         return;
       }
 
+      const subtotal = getOrderSubtotal();
+      const discount = getOrderDiscount();
       const totalAmount = getOrderGrandTotal();
       const paidInput = document.getElementById('order-paid-amount').value;
       const paidAmount = paidInput === '' ? 0 : Math.max(0, parseFloat(paidInput));
@@ -1922,6 +1879,8 @@
         date: todayStr,
         timestamp: Date.now(),
         items: [...currentOrderItems],
+        subtotal,
+        discount,
         totalAmount,
         paidAmount,
         debtAdded,
@@ -2236,6 +2195,7 @@
                   <span class="text-xs font-bold text-slate-400">${tx.date}</span>
                 </div>
                 <p class="text-xs text-slate-600 font-semibold leading-relaxed">${itemsSummary}</p>
+                ${tx.discount > 0 ? `<p class="text-xs font-extrabold text-violet-700">خصم ${formatMoney(tx.discount)} ج.م (قبل الخصم ${formatMoney(tx.subtotal)})</p>` : ''}
                 <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 text-center">
                   <div class="bg-slate-50 p-1.5 rounded-lg">
                     <span class="block text-[10px] text-slate-400 font-bold">الإجمالي</span>
@@ -2904,7 +2864,7 @@
           if (t.type === 'discount') {
             msg += `• [${t.date}] خصم: ${formatMoney(t.discountAmount)} ج.م\n`;
           } else if (t.type === 'order') {
-            msg += `• [${t.date}] بضاعة بقيمة ${formatMoney(t.totalAmount)} ج.م (مدفوع ${formatMoney(t.paidAmount)} / متبقي ${formatMoney(t.debtAdded)})\n`;
+            msg += `• [${t.date}] بضاعة بقيمة ${formatMoney(t.totalAmount)} ج.م${t.discount > 0 ? ` (بعد خصم ${formatMoney(t.discount)})` : ''} (مدفوع ${formatMoney(t.paidAmount)} / متبقي ${formatMoney(t.debtAdded)})\n`;
           } else {
             msg += `• [${t.date}] سداد نقدي: ${formatMoney(t.paidAmount)} ج.م\n`;
           }
@@ -3215,6 +3175,7 @@
           } else if (tx.debtAdded === 0) {
             desc += ` [خالص كاش]`;
           }
+          if (tx.discount > 0) desc += ` [خصم ${formatMoney(tx.discount)}]`;
           if (desc.length > 36) desc = desc.slice(0, 35) + '..';
 
           ctx.textAlign = 'right';
