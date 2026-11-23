@@ -1866,6 +1866,8 @@
         ? `تم حفظ الأوردر. ⚠️ قاربت على الخلص: ${lowItems.map(p => `${p.name} (${p.stock})`).join('، ')}`
         : 'تم حفظ الأوردر وتحديث حساب الصالون بنجاح');
       switchTab('dashboard');
+      // اعرض كشف حساب الصالون بعد حفظ الأوردر على طول
+      setTimeout(() => openStatementImageForSalon(salonId), 150);
     }
 
     // ==================== 3. PAYMENT COLLECTION LOGIC ====================
@@ -3137,11 +3139,19 @@
             desc += ` [خالص كاش]`;
           }
           if (tx.discount > 0) desc += ` [خصم ${formatMoney(tx.discount)}]`;
-          if (desc.length > 36) desc = desc.slice(0, 35) + '..';
-
           ctx.textAlign = 'right';
           ctx.fillStyle = inkDark;
-          ctx.font = 'bold 19px Cairo, sans-serif';
+          // صغّر الخط عشان بيان الأصناف يتكتب كله بدل ما يتقص
+          const maxDescW = (c5 - c4) - 28;
+          let descSize = 19;
+          ctx.font = `bold ${descSize}px Cairo, sans-serif`;
+          while (ctx.measureText(desc).width > maxDescW && descSize > 12) {
+            descSize--;
+            ctx.font = `bold ${descSize}px Cairo, sans-serif`;
+          }
+          while (ctx.measureText(desc).width > maxDescW && desc.length > 4) {
+            desc = desc.slice(0, -2);
+          }
           ctx.fillText(desc, c5 - 14, rowY);
 
           ctx.textAlign = 'center';
