@@ -621,10 +621,7 @@
           <p class="text-xs font-bold text-slate-500 mb-1">إجمالي اللي عليا للموردين</p>
           <p id="stat-suppliers-debt" class="text-2xl font-extrabold text-amber-600">0 ج.م</p>
         </div>
-        <div class="grid grid-cols-2 gap-2.5">
-          <button onclick="openPurchaseModal()" class="bg-navy-900 hover:bg-navy-800 text-white font-extrabold py-3 rounded-xl text-sm flex items-center justify-center gap-1.5"><i data-lucide="plus" class="w-4 h-4"></i><span>تسجيل مشتريات</span></button>
-          <button onclick="openSupplierPayModal()" class="bg-primary-600 hover:bg-primary-700 text-white font-extrabold py-3 rounded-xl text-sm flex items-center justify-center gap-1.5"><i data-lucide="hand-coins" class="w-4 h-4"></i><span>دفعة لمورد</span></button>
-        </div>
+        <button onclick="openPurchaseModal()" class="w-full bg-navy-900 hover:bg-navy-800 text-white font-extrabold py-3 rounded-xl text-sm flex items-center justify-center gap-1.5"><i data-lucide="plus" class="w-4 h-4"></i><span>تسجيل مشتريات</span></button>
       </div>
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
         <div class="px-4 py-3 border-b border-slate-100 bg-slate-50"><h3 class="font-extrabold text-sm text-navy-900">آخر المشتريات والدفعات</h3></div>
@@ -639,7 +636,10 @@
           <p class="text-xs font-bold text-slate-500 mb-1">إجمالي اللي عليا للموردين</p>
           <p id="stat-suppliers-debt-2" class="text-2xl font-extrabold text-amber-600">0 ج.م</p>
         </div>
-        <button onclick="openSupplierModal()" class="w-full bg-navy-900 hover:bg-navy-800 text-white font-extrabold py-3 rounded-xl text-sm flex items-center justify-center gap-1.5"><i data-lucide="user-plus" class="w-4 h-4"></i><span>إضافة مورد جديد</span></button>
+        <div class="grid grid-cols-2 gap-2.5">
+          <button onclick="openSupplierModal()" class="bg-navy-900 hover:bg-navy-800 text-white font-extrabold py-3 rounded-xl text-sm flex items-center justify-center gap-1.5"><i data-lucide="user-plus" class="w-4 h-4"></i><span>إضافة مورد جديد</span></button>
+          <button onclick="openSupplierPayModal()" class="bg-primary-600 hover:bg-primary-700 text-white font-extrabold py-3 rounded-xl text-sm flex items-center justify-center gap-1.5"><i data-lucide="hand-coins" class="w-4 h-4"></i><span>دفعة لمورد</span></button>
+        </div>
       </div>
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
         <div class="px-4 py-3 border-b border-slate-100 bg-slate-50"><h3 class="font-extrabold text-sm text-navy-900">الموردين (اضغط على المورد لكشف الحساب)</h3></div>
@@ -888,13 +888,14 @@
         </div>
       </div>
       <div class="bg-slate-50 rounded-xl p-2.5 space-y-2 border border-slate-200">
-        <input type="text" id="pur-item-name" list="pur-products-list" placeholder="اشتريت إيه؟ (اسم الصنف)" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-sm font-bold outline-none" />
+        <input type="text" id="pur-item-name" list="pur-products-list" oninput="onPurchaseNameInput()" autocomplete="off" placeholder="اشتريت إيه؟ (اسم الصنف)" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-sm font-bold outline-none" />
         <datalist id="pur-products-list"></datalist>
         <div class="grid grid-cols-5 gap-2">
           <input type="number" id="pur-item-qty" value="1" min="0" step="any" placeholder="الكمية" class="col-span-1 bg-white border border-slate-300 rounded-xl px-2 py-2.5 text-sm font-bold outline-none" />
-          <input type="number" id="pur-item-cost" min="0" step="any" placeholder="سعر الوحدة" class="col-span-2 bg-white border border-slate-300 rounded-xl px-2 py-2.5 text-sm font-bold outline-none" />
+          <input type="number" id="pur-item-cost" min="0" step="any" oninput="purCostAuto = false" placeholder="سعر الوحدة" class="col-span-2 bg-white border border-slate-300 rounded-xl px-2 py-2.5 text-sm font-bold outline-none" />
           <button onclick="addPurchaseItem()" class="col-span-2 bg-navy-900 text-white font-bold rounded-xl text-sm">+ إضافة</button>
         </div>
+        <p id="pur-item-hint" class="hidden text-[11px] font-bold px-1"></p>
       </div>
       <div id="pur-items" class="space-y-1.5 text-sm"></div>
       <div class="grid grid-cols-2 gap-2 items-end">
@@ -906,6 +907,7 @@
       </div>
       <div id="pur-remaining" class="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm font-extrabold text-amber-800">عليا: 0 ج.م</div>
       <input type="text" id="pur-note" placeholder="ملاحظة (اختياري)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-bold outline-none" />
+      <label class="flex items-center gap-2 text-xs font-bold text-slate-700"><input type="checkbox" id="pur-add-products" checked /> ضيف الأصناف الجديدة لقائمة الأصناف (بسعر الشراء ده)</label>
       <label class="flex items-center gap-2 text-xs font-bold text-slate-700"><input type="checkbox" id="pur-add-stock" checked /> زوّد الكمية في المخزن للأصناف المحفوظة</label>
       <div class="flex gap-2 pt-1">
         <button onclick="savePurchase()" class="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-extrabold py-3 rounded-xl">حفظ المشتريات</button>
@@ -1670,7 +1672,7 @@
     function populatePresetProductsDropdown() {
       const select = document.getElementById('order-product-preset');
       select.innerHTML = `<option value="">-- اختر من الأصناف المحفوظة --</option>` +
-        appData.products.map(p => `<option value="${p.id}">${p.name} (${formatMoney(p.price)} ج.م)${hasStock(p) ? ` — متاح: ${p.stock}` : ''}</option>`).join('');
+        appData.products.map(p => `<option value="${p.id}">${p.name} (${(p.price === null || p.price === undefined) ? 'بدون سعر بيع' : formatMoney(p.price) + ' ج.م'})${hasStock(p) ? ` — متاح: ${p.stock}` : ''}</option>`).join('');
     }
 
     function onSelectPresetProduct() {
@@ -2439,9 +2441,44 @@
       document.getElementById('pur-date').value = todayISO();
       ['pur-item-name','pur-item-cost','pur-paid','pur-note'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('pur-item-qty').value = 1;
-      document.getElementById('pur-products-list').innerHTML = appData.products.map(p => `<option value="${p.name}"></option>`).join('');
+      purCostAuto = false;
+      document.getElementById('pur-item-hint').classList.add('hidden');
+      document.getElementById('pur-products-list').innerHTML = appData.products.map(p =>
+        `<option value="${p.name}" label="${(p.cost === null || p.cost === undefined) ? '' : 'سعر الشراء: ' + formatMoney(p.cost) + ' ج.م'}"></option>`).join('');
       renderPurchaseItems();
       document.getElementById('modal-purchase').classList.remove('hidden');
+    }
+
+    let purCostAuto = false;
+
+    // When the typed name matches a saved product, fill the unit price with its purchase price
+    function onPurchaseNameInput() {
+      const name = document.getElementById('pur-item-name').value.trim();
+      const costEl = document.getElementById('pur-item-cost');
+      const hint = document.getElementById('pur-item-hint');
+      const prod = name ? appData.products.find(p => p.name === name) : null;
+      if (prod) {
+        if (prod.cost !== null && prod.cost !== undefined && !isNaN(Number(prod.cost))) {
+          costEl.value = prod.cost;
+          purCostAuto = true;
+          hint.className = 'text-[11px] font-bold px-1 text-primary-700';
+          hint.textContent = `سعر الشراء المحفوظ: ${formatMoney(prod.cost)} ج.م (تقدر تغيّره)`;
+        } else {
+          if (purCostAuto) { costEl.value = ''; purCostAuto = false; }
+          hint.className = 'text-[11px] font-bold px-1 text-amber-700';
+          hint.textContent = 'الصنف ده ملوش سعر شراء محفوظ، اكتب سعر الوحدة';
+        }
+      } else {
+        if (purCostAuto) { costEl.value = ''; purCostAuto = false; }
+        if (name) {
+          hint.className = 'text-[11px] font-bold px-1 text-slate-500';
+          hint.textContent = 'صنف جديد: اكتب سعر الشراء وهيتسجل في المشتريات وهيتضاف لقائمة الأصناف';
+        } else {
+          hint.className = 'hidden';
+          hint.textContent = '';
+        }
+      }
+      hint.classList.toggle('hidden', !hint.textContent);
     }
 
     function addPurchaseItem() {
@@ -2455,6 +2492,8 @@
       document.getElementById('pur-item-name').value = '';
       document.getElementById('pur-item-cost').value = '';
       document.getElementById('pur-item-qty').value = 1;
+      purCostAuto = false;
+      onPurchaseNameInput();
       renderPurchaseItems();
     }
 
@@ -2488,15 +2527,21 @@
       const paid = Math.max(0, parseFloat(document.getElementById('pur-paid').value) || 0);
       const debtAdded = Math.max(0, total - paid);
       const sp = appData.suppliers.find(x => x.id === supplierId);
+      const maxPay = total + (Number(sp.balance) || 0);
+      if (paid > maxPay) { showToast(`المدفوع أكتر من المطلوب للمورد (${formatMoney(maxPay)} ج.م)`); return; }
       sp.balance = (Number(sp.balance) || 0) + debtAdded;
       if (paid > total) sp.balance = Math.max(0, sp.balance - (paid - total));
 
-      if (document.getElementById('pur-add-stock').checked) {
-        purchaseItems.forEach(it => {
-          const prod = appData.products.find(p => p.name === it.name);
-          if (prod && hasStock(prod)) prod.stock = Number(prod.stock) + it.qty;
-        });
-      }
+      const addStock = document.getElementById('pur-add-stock').checked;
+      const addProducts = document.getElementById('pur-add-products').checked;
+      purchaseItems.forEach((it, i) => {
+        const prod = appData.products.find(p => p.name === it.name);
+        if (prod) {
+          if (addStock && hasStock(prod)) prod.stock = Number(prod.stock) + it.qty;
+        } else if (addProducts) {
+          appData.products.push({ id: 'p_' + Date.now() + '_' + i, name: it.name, stock: addStock ? it.qty : null, cost: it.price, price: null });
+        }
+      });
 
       appData.purchases.push({
         id: 'pur_' + Date.now(), type: 'purchase', supplierId, date, timestamp: Date.now(),
@@ -2600,6 +2645,7 @@
     function updateSupplierPayHint() {
       const sp = appData.suppliers.find(x => x.id === document.getElementById('sp-supplier').value);
       document.getElementById('sp-hint').textContent = sp ? `عليا للمورد: ${formatMoney(sp.balance)} ج.م` : '';
+      document.getElementById('sp-amount').max = sp ? (Number(sp.balance) || 0) : '';
     }
 
     function saveSupplierPayment() {
@@ -2607,7 +2653,10 @@
       const amount = parseFloat(document.getElementById('sp-amount').value);
       if (!sp) { showToast('اختار المورد'); return; }
       if (isNaN(amount) || amount <= 0) { showToast('اكتب المبلغ'); return; }
-      sp.balance = Math.max(0, (Number(sp.balance) || 0) - amount);
+      const owed = Number(sp.balance) || 0;
+      if (owed <= 0) { showToast('مفيش عليك فلوس للمورد ده'); return; }
+      if (amount > owed) { showToast(`المبلغ أكتر من اللي عليك للمورد (${formatMoney(owed)} ج.م)`); return; }
+      sp.balance = Math.max(0, owed - amount);
       appData.purchases.push({
         id: 'pay_' + Date.now(), type: 'payment', supplierId: sp.id,
         date: document.getElementById('sp-date').value || todayISO(), timestamp: Date.now(),
@@ -3239,20 +3288,21 @@
       document.getElementById('edit-product-name').value = p.name;
       document.getElementById('edit-product-stock').value = hasStock(p) ? p.stock : '';
       document.getElementById('edit-product-cost').value = (p.cost === null || p.cost === undefined) ? '' : p.cost;
-      document.getElementById('edit-product-price').value = p.price;
+      document.getElementById('edit-product-price').value = (p.price === null || p.price === undefined) ? '' : p.price;
       document.getElementById('modal-product').classList.remove('hidden');
     }
 
     function saveEditedProduct() {
       const id = document.getElementById('edit-product-id').value;
       const name = document.getElementById('edit-product-name').value.trim();
-      const price = parseFloat(document.getElementById('edit-product-price').value);
+      const priceRaw = document.getElementById('edit-product-price').value;
+      const price = priceRaw === '' ? null : parseFloat(priceRaw);
       const stockRaw = document.getElementById('edit-product-stock').value;
       const stock = stockRaw === '' ? null : parseFloat(stockRaw);
       const costRaw = document.getElementById('edit-product-cost').value;
       const cost = costRaw === '' ? null : parseFloat(costRaw);
       if (!name) { showToast('اكتب اسم الصنف'); return; }
-      if (isNaN(price) || price < 0) { showToast('اكتب سعر البيع للصنف'); return; }
+      if (price !== null && (isNaN(price) || price < 0)) { showToast('سعر البيع غير صحيح'); return; }
       if (cost !== null && (isNaN(cost) || cost < 0)) { showToast('سعر الشراء غير صحيح'); return; }
       const p = appData.products.find(x => x.id === id);
       if (stock !== null && (isNaN(stock) || stock < 0)) { showToast('الكمية غير صحيحة'); return; }
@@ -3289,8 +3339,8 @@
               </div>` : `<p class="text-[11px] font-bold text-slate-400 mt-1">الكمية غير متابعة (اضغط تعديل لتحديدها)</p>`}
             <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs font-extrabold mt-1">
               <span class="text-slate-500">شراء: ${(p.cost === null || p.cost === undefined) ? '—' : formatMoney(p.cost) + ' ج.م'}</span>
-              <span class="text-primary-600">بيع: ${formatMoney(p.price)} ج.م</span>
-              ${(p.cost === null || p.cost === undefined) ? '' : `<span class="${p.price - p.cost >= 0 ? 'text-emerald-600' : 'text-rose-600'}">ربح: ${formatMoney(p.price - p.cost)} ج.م</span>`}
+              <span class="text-primary-600">بيع: ${(p.price === null || p.price === undefined) ? 'لسه ماتحددش (اضغط تعديل)' : formatMoney(p.price) + ' ج.م'}</span>
+              ${(p.cost === null || p.cost === undefined || p.price === null || p.price === undefined) ? '' : `<span class="${p.price - p.cost >= 0 ? 'text-emerald-600' : 'text-rose-600'}">ربح: ${formatMoney(p.price - p.cost)} ج.م</span>`}
             </div>
           </div>
           <div class="flex items-center gap-1">
