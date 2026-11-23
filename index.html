@@ -747,7 +747,7 @@
             <i data-lucide="plus" class="w-4 h-4"></i>
             <span>أوردر جديد</span>
           </button>
-          <button onclick="openStatementImageModal()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-extrabold px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 shadow-xs">
+          <button onclick="statementOnlyTx = null; openStatementImageModal()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-extrabold px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 shadow-xs">
             <i data-lucide="file-image" class="w-4 h-4"></i>
             <span>صورة كشف الحساب</span>
           </button>
@@ -1833,7 +1833,7 @@
       }
 
       // Record Transaction
-      appData.transactions.push({
+      const newOrderTx = {
         id: 'tx_' + Date.now(),
         type: 'order',
         salonId,
@@ -1846,7 +1846,8 @@
         paidAmount,
         debtAdded,
         note
-      });
+      };
+      appData.transactions.push(newOrderTx);
 
       // Deduct stock for tracked products
       const lowItems = [];
@@ -1867,7 +1868,7 @@
         : 'تم حفظ الأوردر وتحديث حساب الصالون بنجاح');
       switchTab('dashboard');
       // اعرض كشف حساب الصالون بعد حفظ الأوردر على طول
-      setTimeout(() => openStatementImageForSalon(salonId), 150);
+      setTimeout(() => openOrderStatementImage(salonId, newOrderTx), 150);
     }
 
     // ==================== 3. PAYMENT COLLECTION LOGIC ====================
@@ -2909,8 +2910,18 @@
       return resultParts.join(' و') + ' جنيه مصري فقط لا غير';
     }
 
+    let statementOnlyTx = null;
+
     function openStatementImageForSalon(salonId) {
       activeLedgerSalonId = salonId;
+      statementOnlyTx = null;
+      openStatementImageModal();
+    }
+
+    // كشف حساب للأوردر ده بس (بعد الحفظ)
+    function openOrderStatementImage(salonId, tx) {
+      activeLedgerSalonId = salonId;
+      statementOnlyTx = tx;
       openStatementImageModal();
     }
 
@@ -2919,7 +2930,7 @@
       const salon = appData.salons.find(s => s.id === activeLedgerSalonId);
       if (!salon) return;
 
-      generateStatementCanvasImage(salon);
+      generateStatementCanvasImage(salon, statementOnlyTx ? { txs: [statementOnlyTx], footerAmount: Number(statementOnlyTx.paidAmount) || 0, footerLabel: 'المدفوع', orderBreakdown: true } : {});
       document.getElementById('modal-statement-img').classList.remove('hidden');
       lucide.createIcons();
     }
@@ -3133,12 +3144,14 @@
         if (tx.type === 'order') {
           const itemNames = (tx.items || []).map(i => `${i.name} (${i.qty})`).join(' + ');
           let desc = `بضاعة: ${itemNames}`;
-          if (tx.paidAmount > 0 && tx.debtAdded > 0) {
-            desc += ` [دفع ${formatMoney(tx.paidAmount)}]`;
-          } else if (tx.debtAdded === 0) {
-            desc += ` [خالص كاش]`;
+          if (!opts.orderBreakdown) {
+            if (tx.paidAmount > 0 && tx.debtAdded > 0) {
+              desc += ` [دفع ${formatMoney(tx.paidAmount)}]`;
+            } else if (tx.debtAdded === 0) {
+              desc += ` [خالص كاش]`;
+            }
+            if (tx.discount > 0) desc += ` [خصم ${formatMoney(tx.discount)}]`;
           }
-          if (tx.discount > 0) desc += ` [خصم ${formatMoney(tx.discount)}]`;
           ctx.textAlign = 'right';
           ctx.fillStyle = inkDark;
           // صغّر الخط عشان بيان الأصناف يتكتب كله بدل ما يتقص
@@ -3157,8 +3170,28 @@
           ctx.textAlign = 'center';
           ctx.fillStyle = tx.debtAdded > 0 ? inkDark : '#059669';
           ctx.font = '800 20px Cairo, sans-serif';
-          const amtText = tx.debtAdded > 0 ? `${formatMoney(tx.debtAdded)} ج.م` : `${formatMoney(tx.totalAmount)} (كاش)`;
+          const amtText = opts.orderBreakdown
+            ? `${formatMoney(tx.totalAmount)} ج.م`
+            : (tx.debtAdded > 0 ? `${formatMoney(tx.debtAdded)} ج.م` : `${formatMoney(tx.totalAmount)} (كاش)`);
           ctx.fillText(amtText, (c5 + c6) / 2, rowY);
+
+          // تفصيل الأوردر: إجمالي / خصم / مدفوع / آجل
+          if (opts.orderBreakdown) {
+            const lines = [];
+            if (tx.discount > 0) lines.push({ label: `خصم (من ${formatMoney(tx.subtotal)})`, amt: `${formatMoney(tx.discount)}- ج.م`, color: '#6d28d9' });
+            lines.push({ label: 'المدفوع', amt: `${formatMoney(tx.paidAmount)} ج.م`, color: '#059669' });
+            lines.push({ label: 'الآجل (الباقي)', amt: `${formatMoney(tx.debtAdded)} ج.م`, color: inkRed });
+            lines.forEach((ln, k) => {
+              const y2 = bodyTop + (idx + 1 + k) * rowH + 31;
+              ctx.textAlign = 'right';
+              ctx.fillStyle = ln.color;
+              ctx.font = 'bold 19px Cairo, sans-serif';
+              ctx.fillText(ln.label, c5 - 14, y2);
+              ctx.textAlign = 'center';
+              ctx.font = '800 20px Cairo, sans-serif';
+              ctx.fillText(ln.amt, (c5 + c6) / 2, y2);
+            });
+          }
         } else if (tx.type === 'discount') {
           const dDesc = tx.note ? `خصم (${tx.note})` : 'خصم';
           ctx.textAlign = 'right';
@@ -3207,14 +3240,15 @@
       ctx.textAlign = 'center';
       ctx.fillStyle = inkDark;
       ctx.font = 'bold 19px Cairo, sans-serif';
-      const arabicWords = numberToArabicWords(salon.balance);
+      const footerAmt = opts.footerAmount !== undefined ? opts.footerAmount : salon.balance;
+      const arabicWords = footerAmt > 0 ? numberToArabicWords(footerAmt) : 'صفر جنيه مصري فقط لا غير';
       ctx.fillText(arabicWords, wordsBoxX + wordsBoxW / 2, boxY + 28);
 
       // Orange "المجموع" label
       ctx.textAlign = 'center';
       ctx.fillStyle = orangeText;
       ctx.font = '800 30px Cairo, sans-serif';
-      ctx.fillText('المجموع', (wordsBoxX + wordsBoxW + c5) / 2 + 12, fMidY);
+      ctx.fillText(opts.footerLabel || 'المجموع', (wordsBoxX + wordsBoxW + c5) / 2 + 12, fMidY);
 
       // Right Bordered Box for Numeric Balance
       const numBoxX = c5 + 14;
@@ -3224,9 +3258,9 @@
       ctx.strokeRect(numBoxX, boxY, numBoxW, boxH);
 
       ctx.textAlign = 'center';
-      ctx.fillStyle = Number(salon.balance) > 0 ? inkBlue : '#059669';
+      ctx.fillStyle = (opts.footerAmount !== undefined || Number(salon.balance) > 0) ? inkBlue : '#059669';
       ctx.font = '800 23px Cairo, sans-serif';
-      ctx.fillText(`${formatMoney(salon.balance)} ج.م`, numBoxX + numBoxW / 2, boxY + 29);
+      ctx.fillText(`${formatMoney(footerAmt)} ج.م`, numBoxX + numBoxW / 2, boxY + 29);
 
       // Export to Preview Image & Blob
       const dataUrl = canvas.toDataURL('image/png');
