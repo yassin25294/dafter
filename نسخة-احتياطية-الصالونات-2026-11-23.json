@@ -1,0 +1,236 @@
+{
+  "salons": [
+    {
+      "id": "s_1795403967842",
+      "name": "محمد عبدو صالون",
+      "area": "لوران",
+      "phone": "",
+      "balance": 2600,
+      "lastTxDate": "2026-11-23"
+    },
+    {
+      "id": "s_1795403976382",
+      "name": "نوح",
+      "area": "ميامي",
+      "phone": "",
+      "balance": 0,
+      "lastTxDate": "2026-11-23"
+    },
+    {
+      "id": "s_1795403986978",
+      "name": "Bross",
+      "area": "ميامي",
+      "phone": "",
+      "balance": 0,
+      "lastTxDate": "2026-11-23"
+    },
+    {
+      "id": "s_1795403993270",
+      "name": "السيد",
+      "area": "ميامي",
+      "phone": "",
+      "balance": 0,
+      "lastTxDate": "2026-11-23"
+    }
+  ],
+  "products": [
+    {
+      "id": "p_1795404037566",
+      "name": "فوط قص",
+      "stock": 0,
+      "cost": 500,
+      "price": 600
+    },
+    {
+      "id": "p_1795404053784",
+      "name": "امشاط",
+      "stock": 9,
+      "cost": 30,
+      "price": 40
+    },
+    {
+      "id": "p_1795404062846",
+      "name": "مراية",
+      "stock": 0,
+      "cost": 500,
+      "price": 600
+    },
+    {
+      "id": "p_1795404069954",
+      "name": "كرسي",
+      "stock": 3,
+      "cost": 1000,
+      "price": 2000
+    },
+    {
+      "id": "p_1795404130146_0",
+      "name": "سشوار",
+      "stock": 5,
+      "cost": 200,
+      "price": 300
+    }
+  ],
+  "transactions": [
+    {
+      "id": "tx_1795404182276",
+      "type": "order",
+      "salonId": "s_1795403967842",
+      "date": "2026-11-23",
+      "timestamp": 1795404182276,
+      "items": [
+        {
+          "name": "فوط قص",
+          "qty": 6,
+          "price": 600,
+          "productId": "p_1795404037566"
+        },
+        {
+          "name": "مراية",
+          "qty": 1,
+          "price": 600,
+          "productId": "p_1795404062846"
+        },
+        {
+          "name": "كرسي",
+          "qty": 2,
+          "price": 2000,
+          "productId": "p_1795404069954"
+        }
+      ],
+      "totalAmount": 8200,
+      "paidAmount": 4100,
+      "debtAdded": 4100,
+      "note": ""
+    },
+    {
+      "id": "tx_1795404237784",
+      "type": "order",
+      "salonId": "s_1795403976382",
+      "date": "2026-11-23",
+      "timestamp": 1795404237784,
+      "items": [
+        {
+          "name": "امشاط",
+          "qty": 1,
+          "price": 40,
+          "productId": "p_1795404053784"
+        },
+        {
+          "name": "سشوار",
+          "qty": 1,
+          "price": 300,
+          "productId": "p_1795404130146_0"
+        }
+      ],
+      "totalAmount": 340,
+      "paidAmount": 340,
+      "debtAdded": 0,
+      "note": ""
+    },
+    {
+      "id": "tx_1795404248199",
+      "type": "order",
+      "salonId": "s_1795403967842",
+      "date": "2026-11-23",
+      "timestamp": 1795404248199,
+      "items": [
+        {
+          "name": "مبلغ إضافي",
+          "qty": 1,
+          "price": 500
+        }
+      ],
+      "totalAmount": 500,
+      "paidAmount": 0,
+      "debtAdded": 500,
+      "note": ""
+    },
+    {
+      "id": "tx_1795404299194",
+      "type": "order",
+      "salonId": "s_1795403976382",
+      "date": "2026-11-23",
+      "timestamp": 1795404299194,
+      "items": [
+        {
+          "name": "فوط قص",
+          "qty": 6,
+          "price": 600,
+          "productId": "p_1795404037566"
+        },
+        {
+          "name": "مراية",
+          "qty": 3,
+          "price": 600,
+          "productId": "p_1795404062846"
+        }
+      ],
+      "totalAmount": 5400,
+      "paidAmount": 5400,
+      "debtAdded": 0,
+      "note": ""
+    },
+    {
+      "id": "tx_1795404311302",
+      "type": "payment",
+      "salonId": "s_1795403967842",
+      "date": "2026-11-23",
+      "timestamp": 1795404311302,
+      "paidAmount": 2000,
+      "note": ""
+    }
+  ],
+  "suppliers": [
+    {
+      "id": "sup_1795404003758",
+      "name": "احمد سعد",
+      "phone": "",
+      "balance": 0
+    },
+    {
+      "id": "sup_1795404016965",
+      "name": "اسامه صبحي",
+      "phone": "",
+      "balance": 0
+    }
+  ],
+  "purchases": [
+    {
+      "id": "pur_1795404094768",
+      "type": "purchase",
+      "supplierId": "sup_1795404003758",
+      "date": "2026-11-23",
+      "timestamp": 1795404094768,
+      "items": [
+        {
+          "name": "فوط قص",
+          "qty": 3,
+          "price": 500
+        }
+      ],
+      "totalAmount": 1500,
+      "paidAmount": 1500,
+      "debtAdded": 0,
+      "note": ""
+    },
+    {
+      "id": "pur_1795404130146",
+      "type": "purchase",
+      "supplierId": "sup_1795404016965",
+      "date": "2026-11-23",
+      "timestamp": 1795404130146,
+      "items": [
+        {
+          "name": "سشوار",
+          "qty": 6,
+          "price": 200
+        }
+      ],
+      "totalAmount": 1200,
+      "paidAmount": 1200,
+      "debtAdded": 0,
+      "note": ""
+    }
+  ],
+  "schedule": []
+}
