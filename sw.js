@@ -1,4 +1,4 @@
-const CACHE = 'dafter-v4';
+const CACHE = 'dafter-v5';
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./', './index.html', './manifest.json'])).then(() => self.skipWaiting()));
 });
