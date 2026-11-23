@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>دفتر التوزيع - إدارة حسابات الصالونات</title>
+  <title>Haitham Ismail</title>
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -81,11 +81,96 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="دفتر التوزيع" />
+  <meta name="apple-mobile-web-app-title" content="Haitham Ismail" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <link rel="icon" type="image/png" href="icons/icon-192.png" />
+  <style>
+    input, textarea, select { -webkit-user-select: text; user-select: text; }
+  </style>
 </head>
 <body class="text-slate-800 pb-24 md:pb-8 select-none">
+  <!-- ==================== LOGIN SCREEN ==================== -->
+  <div id="auth-screen" class="fixed inset-0 z-[100] overflow-y-auto text-white" style="background:linear-gradient(180deg,#0f172a 0%,#1e293b 55%,#0f172a 100%)">
+    <div class="min-h-full flex flex-col items-center justify-center px-5 py-10" style="padding-top:max(2.5rem,env(safe-area-inset-top));padding-bottom:max(2.5rem,env(safe-area-inset-bottom))">
+      <div class="w-full max-w-sm space-y-6">
+        <div class="text-center space-y-4">
+          <svg class="w-full max-w-[18rem] mx-auto drop-shadow-lg" viewBox="0 0 320 190" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="أدوات حلاقة">
+  <defs>
+    <clipPath id="poleclip"><rect x="40" y="42" width="40" height="108" rx="6"/></clipPath>
+    <pattern id="stripes" width="36" height="36" patternUnits="userSpaceOnUse" patternTransform="rotate(-35)">
+      <rect width="36" height="36" fill="#f8fafc"/>
+      <rect x="12" width="12" height="36" fill="#ef4444"/>
+      <rect x="24" width="12" height="36" fill="#3b82f6"/>
+    </pattern>
+    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f1f5f9"/><stop offset="1" stop-color="#94a3b8"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="160" cy="176" rx="130" ry="8" fill="#000" opacity="0.25"/>
+  <!-- barber pole -->
+  <rect x="34" y="28" width="52" height="16" rx="6" fill="#cbd5e1"/>
+  <rect x="34" y="148" width="52" height="16" rx="6" fill="#cbd5e1"/>
+  <rect x="40" y="42" width="40" height="108" fill="url(#stripes)" clip-path="url(#poleclip)"/>
+  <rect x="40" y="42" width="40" height="108" rx="6" fill="none" stroke="#e2e8f0" stroke-width="2"/>
+  <circle cx="60" cy="22" r="7" fill="#f59e0b"/>
+  <!-- scissors -->
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <line x1="196" y1="30" x2="146" y2="126" stroke="url(#steel)" stroke-width="9"/>
+    <line x1="126" y1="30" x2="176" y2="126" stroke="#e2e8f0" stroke-width="9"/>
+    <circle cx="140" cy="142" r="16" fill="none" stroke="#f59e0b" stroke-width="6"/>
+    <circle cx="182" cy="142" r="16" fill="none" stroke="#f59e0b" stroke-width="6"/>
+    <circle cx="161" cy="78" r="5" fill="#f59e0b"/>
+  </g>
+  <!-- comb -->
+  <rect x="236" y="62" width="70" height="24" rx="5" fill="#10b981"/>
+  <g fill="#10b981">
+    <rect x="239" y="86" width="4" height="40" rx="2"/><rect x="246" y="86" width="4" height="40" rx="2"/>
+    <rect x="253" y="86" width="4" height="40" rx="2"/><rect x="260" y="86" width="4" height="40" rx="2"/>
+    <rect x="267" y="86" width="4" height="40" rx="2"/><rect x="274" y="86" width="4" height="40" rx="2"/>
+    <rect x="281" y="86" width="4" height="40" rx="2"/><rect x="288" y="86" width="4" height="40" rx="2"/>
+    <rect x="295" y="86" width="4" height="40" rx="2"/>
+  </g>
+  <rect x="244" y="68" width="54" height="4" rx="2" fill="#fff" opacity="0.35"/>
+</svg>
+
+          <div>
+            <h1 dir="ltr" class="text-3xl font-extrabold tracking-wide">Haitham Ismail</h1>
+            <p class="text-sm text-slate-300 mt-1">دفتر حسابات صالونات الحلاقة</p>
+          </div>
+        </div>
+
+        <form id="auth-form" autocomplete="on" class="bg-white/5 border border-white/10 rounded-3xl p-5 space-y-3.5">
+          <p id="auth-hint" class="text-xs font-bold text-slate-300 leading-relaxed"></p>
+          <div>
+            <label for="auth-user" class="block text-xs font-bold text-slate-300 mb-1">اسم المستخدم</label>
+            <input id="auth-user" type="text" dir="ltr" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" class="w-full bg-white/10 border border-white/20 focus:border-primary-500 rounded-xl px-3.5 py-3 text-base font-bold text-white outline-none text-left" />
+          </div>
+          <div>
+            <label for="auth-pass" class="block text-xs font-bold text-slate-300 mb-1">كلمة السر</label>
+            <div class="relative">
+              <input id="auth-pass" type="password" dir="ltr" autocomplete="current-password" class="w-full bg-white/10 border border-white/20 focus:border-primary-500 rounded-xl pl-16 pr-3.5 py-3 text-base font-bold text-white outline-none text-left" />
+              <button type="button" id="auth-toggle" class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-extrabold text-primary-500 px-2 py-1">إظهار</button>
+            </div>
+          </div>
+          <div id="auth-confirm-wrap" class="hidden">
+            <label for="auth-pass2" class="block text-xs font-bold text-slate-300 mb-1">تأكيد كلمة السر</label>
+            <input id="auth-pass2" type="password" dir="ltr" autocomplete="new-password" class="w-full bg-white/10 border border-white/20 focus:border-primary-500 rounded-xl px-3.5 py-3 text-base font-bold text-white outline-none text-left" />
+          </div>
+          <label class="flex items-center gap-2 text-xs font-bold text-slate-300">
+            <input type="checkbox" id="auth-remember" class="w-4 h-4" />
+            <span>فضّلني مسجل دخول على الجهاز ده</span>
+          </label>
+          <p id="auth-error" class="hidden text-sm font-bold text-rose-300"></p>
+          <button type="submit" id="auth-submit" class="w-full bg-primary-600 hover:bg-primary-700 active:scale-[0.99] transition text-white font-extrabold text-base py-3.5 rounded-2xl">دخول</button>
+          <div id="auth-forgot-wrap" class="text-center">
+            <button type="button" id="auth-forgot" class="text-[11px] font-bold text-slate-400 underline">نسيت كلمة السر؟</button>
+            <p id="auth-forgot-text" class="hidden text-[11px] text-slate-300 leading-relaxed mt-2">مفيش طريقة لاسترجاعها. الحل إنك تمسح بيانات الموقع من إعدادات المتصفح وتنشئ حساب جديد، وده بيمسح الحسابات المسجلة على الجهاز كمان. لو عندك نسخة احتياطية (ملف JSON) هتقدر تسترجع منها بعد الدخول.</p>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
 
   <!-- Top Header -->
   <header class="bg-navy-900 text-white sticky top-0 z-30 shadow-md">
@@ -95,7 +180,7 @@
           <i data-lucide="scissors" class="w-6 h-6 text-white"></i>
         </div>
         <div>
-          <h1 class="text-lg md:text-xl font-extrabold leading-tight tracking-wide">دفتر التوزيع</h1>
+          <h1 dir="ltr" class="text-lg md:text-xl font-extrabold leading-tight tracking-wide">Haitham Ismail</h1>
           <p class="text-xs text-slate-300">حسابات وبضاعة صالونات الحلاقة</p>
         </div>
       </div>
@@ -730,6 +815,11 @@
         </label>
       </div>
 
+      <div class="space-y-2 pb-4">
+        <button onclick="closeModal('modal-settings'); appChangeCredentials()" class="w-full bg-slate-100 hover:bg-slate-200 text-navy-900 font-bold py-2.5 px-4 rounded-xl text-sm border border-slate-300">تغيير اسم المستخدم وكلمة السر</button>
+        <button onclick="closeModal('modal-settings'); appLogout()" class="w-full bg-navy-900 hover:bg-navy-800 text-white font-bold py-2.5 px-4 rounded-xl text-sm">تسجيل خروج</button>
+      </div>
+
       <div class="border-t border-slate-200 pt-4">
         <p class="text-xs font-bold text-rose-600 mb-2">منطقة تصفير البيانات (لبدء شغل حقيقي نظيف):</p>
         <button onclick="confirmClearDemoData()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-extrabold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-1.5">
@@ -1007,7 +1097,109 @@
   </div>
 
 
-  <!-- ==================== APPLICATION JAVASCRIPT ==================== -->
+  <script>
+(function () {
+  const AUTH_KEY = 'barber_dist_auth_v1', SESS_KEY = 'barber_dist_sess_v1', REM_KEY = 'barber_dist_remember_v1';
+  const $ = id => document.getElementById(id);
+  const sget = (s, k) => { try { return s.getItem(k); } catch (e) { return null; } };
+  const sset = (s, k, v) => { try { s.setItem(k, v); } catch (e) {} };
+  const sdel = (s, k) => { try { s.removeItem(k); } catch (e) {} };
+  let cred = null, mode = 'login';
+  try { cred = JSON.parse(sget(localStorage, AUTH_KEY) || 'null'); } catch (e) { cred = null; }
+
+  async function hashText(str) {
+    try {
+      if (window.crypto && crypto.subtle) {
+        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+      }
+    } catch (e) {}
+    let h = 5381;
+    for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
+    return 'f' + (h >>> 0).toString(16);
+  }
+  const makeHash = (salt, user, pass) => hashText(salt + ':' + user.toLowerCase() + ':' + pass);
+
+  function showError(msg) { const e = $('auth-error'); e.textContent = msg; e.classList.remove('hidden'); }
+  function clearError() { $('auth-error').classList.add('hidden'); }
+
+  function setMode(m) {
+    mode = m;
+    const setup = m === 'setup';
+    $('auth-confirm-wrap').classList.toggle('hidden', !setup);
+    $('auth-forgot-wrap').classList.toggle('hidden', setup);
+    $('auth-forgot-text').classList.add('hidden');
+    $('auth-pass').setAttribute('autocomplete', setup ? 'new-password' : 'current-password');
+    $('auth-submit').textContent = setup ? 'إنشاء الحساب والدخول' : 'دخول';
+    $('auth-hint').textContent = setup
+      ? 'أول مرة: اختار اسم مستخدم وكلمة سر (6 حروف على الأقل). هيتطلبوا منك كل ما تفتح الدفتر.'
+      : 'اكتب اسم المستخدم وكلمة السر للدخول.';
+    $('auth-user').value = setup ? '' : (cred ? cred.u : '');
+    $('auth-pass').value = '';
+    $('auth-pass2').value = '';
+    clearError();
+  }
+
+  function lock(m) { $('auth-screen').classList.remove('hidden'); setMode(m); }
+  function unlock() { $('auth-screen').classList.add('hidden'); window.scrollTo(0, 0); }
+
+  $('auth-toggle').addEventListener('click', () => {
+    const p = $('auth-pass'), show = p.type === 'password';
+    p.type = show ? 'text' : 'password';
+    $('auth-pass2').type = show ? 'text' : 'password';
+    $('auth-toggle').textContent = show ? 'إخفاء' : 'إظهار';
+  });
+  $('auth-forgot').addEventListener('click', () => $('auth-forgot-text').classList.toggle('hidden'));
+
+  $('auth-form').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    clearError();
+    const user = $('auth-user').value.trim();
+    const pass = $('auth-pass').value;
+    if (mode === 'setup') {
+      if (user.length < 3) return showError('اسم المستخدم لازم يكون 3 حروف على الأقل');
+      if (pass.length < 6) return showError('كلمة السر لازم تكون 6 حروف على الأقل');
+      if (pass !== $('auth-pass2').value) return showError('كلمتين السر مش متطابقتين');
+      const salt = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      const h = await makeHash(salt, user, pass);
+      cred = { u: user, s: salt, h };
+      sset(localStorage, AUTH_KEY, JSON.stringify(cred));
+    } else {
+      if (!cred) return setMode('setup');
+      const h = await makeHash(cred.s, user, pass);
+      if (user.toLowerCase() !== cred.u.toLowerCase() || h !== cred.h) {
+        $('auth-pass').value = '';
+        return showError('اسم المستخدم أو كلمة السر غلط');
+      }
+    }
+    sset(sessionStorage, SESS_KEY, '1');
+    if ($('auth-remember').checked) sset(localStorage, REM_KEY, cred.h); else sdel(localStorage, REM_KEY);
+    $('auth-pass').value = ''; $('auth-pass2').value = '';
+    unlock();
+  });
+
+  window.appLogout = function () {
+    sdel(sessionStorage, SESS_KEY);
+    sdel(localStorage, REM_KEY);
+    lock(cred ? 'login' : 'setup');
+  };
+  window.appChangeCredentials = function () {
+    sdel(localStorage, AUTH_KEY);
+    sdel(localStorage, REM_KEY);
+    sdel(sessionStorage, SESS_KEY);
+    cred = null;
+    lock('setup');
+  };
+
+  // start state
+  if (cred && (sget(sessionStorage, SESS_KEY) === '1' || sget(localStorage, REM_KEY) === cred.h)) {
+    $('auth-screen').classList.add('hidden');
+  } else {
+    setMode(cred ? 'login' : 'setup');
+  }
+})();
+</script>
+<!-- ==================== APPLICATION JAVASCRIPT ==================== -->
   <script>
     // Storage Keys
     const STORAGE_KEY = 'barber_dist_app_v1';
