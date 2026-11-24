@@ -178,6 +178,10 @@
           <i data-lucide="plus-circle" class="w-4 h-4"></i>
           <span>أوردر جديد</span>
         </button>
+        <button onclick="switchTab('orders')" data-nav="orders" class="nav-btn flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition text-slate-300 hover:bg-slate-700">
+          <i data-lucide="clipboard-list" class="w-4 h-4"></i>
+          <span>الأوردرات</span>
+        </button>
         <button onclick="switchTab('payment')" data-nav="payment" class="nav-btn flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition text-slate-300 hover:bg-slate-700">
           <i data-lucide="banknote" class="w-4 h-4"></i>
           <span>تحصيل فلوس</span>
@@ -395,10 +399,13 @@
                 <option value="">-- اختر صنف محفوظ أو اكتب يدوياً --</option>
               </select>
             </div>
-            <div class="sm:col-span-7">
-              <input type="text" id="order-item-name" placeholder="اسم الصنف (مثال: علبة شفرات)" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-sm font-semibold outline-none focus:border-primary-600" />
+            <div class="sm:col-span-7 relative">
+              <input type="text" id="order-item-name" autocomplete="off" oninput="onOrderItemNameInput()" onblur="setTimeout(hideOrderSuggest, 150)" placeholder="اسم الصنف (مثال: علبة شفرات)" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-sm font-semibold outline-none focus:border-primary-600" />
+              <div id="order-suggest" class="hidden absolute z-20 inset-x-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto"></div>
             </div>
           </div>
+
+          <p id="order-item-hint" class="hidden text-xs font-bold px-1"></p>
 
           <div class="grid grid-cols-12 gap-2.5 items-end">
             <div class="col-span-4">
@@ -523,6 +530,29 @@
     </section>
 
 
+    <!-- ==================== ORDERS LOG VIEW (سجل الأوردرات) ==================== -->
+    <section id="view-orders" class="hidden space-y-4">
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 space-y-3">
+        <h2 class="text-lg font-extrabold text-navy-900 flex items-center gap-2">
+          <i data-lucide="clipboard-list" class="w-5 h-5 text-primary-600"></i>
+          <span>سجل الأوردرات</span>
+        </h2>
+        <input type="search" id="orders-search" oninput="renderOrdersView()" placeholder="ابحث باسم الصالون أو الصنف أو الملاحظة" class="w-full bg-slate-50 border border-slate-200 focus:border-primary-600 rounded-xl px-3.5 py-2.5 text-sm font-bold outline-none" />
+        <div class="grid grid-cols-2 gap-2">
+          <select id="orders-filter-salon" onchange="renderOrdersView()" aria-label="فلتر الصالون" class="min-w-0 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold outline-none"></select>
+          <input type="date" id="orders-filter-date" onchange="onOrdersDateChange()" aria-label="فلتر اليوم" class="min-w-0 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold outline-none" />
+        </div>
+        <div class="flex flex-wrap gap-2" id="orders-period-chips">
+          <button type="button" data-period="all" onclick="setOrdersPeriod('all')" class="px-3.5 py-1.5 rounded-full text-xs font-extrabold">الكل</button>
+          <button type="button" data-period="today" onclick="setOrdersPeriod('today')" class="px-3.5 py-1.5 rounded-full text-xs font-extrabold">النهاردة</button>
+          <button type="button" data-period="week" onclick="setOrdersPeriod('week')" class="px-3.5 py-1.5 rounded-full text-xs font-extrabold">آخر 7 أيام</button>
+          <button type="button" data-period="month" onclick="setOrdersPeriod('month')" class="px-3.5 py-1.5 rounded-full text-xs font-extrabold">الشهر ده</button>
+        </div>
+        <div id="orders-summary" class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center"></div>
+      </div>
+      <div id="orders-list" class="space-y-3"></div>
+    </section>
+
     <!-- ==================== 4. SALONS DIRECTORY VIEW ==================== -->
     <section id="view-salons" class="hidden space-y-4">
       <!-- Search & Add Bar -->
@@ -560,7 +590,8 @@
         </h2>
         <div class="grid grid-cols-6 sm:grid-cols-12 gap-2.5">
           <div class="col-span-6 sm:col-span-12">
-            <input type="text" id="new-product-name" placeholder="اسم الصنف (مثال: كريم شعر 500 مل)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-primary-600" />
+            <p id="new-product-hint" class="hidden text-xs font-extrabold text-amber-700 mb-1.5"></p>
+            <input type="text" id="new-product-name" oninput="onNewProductNameInput()" placeholder="اسم الصنف (مثال: كريم شعر 500 مل)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-primary-600" />
           </div>
           <div class="col-span-2 sm:col-span-3">
             <input type="number" id="new-product-cost" placeholder="سعر الشراء" min="0" step="any" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-primary-600" />
@@ -641,32 +672,36 @@
 
   <!-- ==================== MOBILE BOTTOM NAVIGATION BAR ==================== -->
   <nav class="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 z-30 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
-    <div class="grid grid-cols-7 h-16">
-      <button onclick="switchTab('dashboard')" data-mobile-nav="dashboard" class="mobile-nav-btn flex flex-col items-center justify-center gap-1 text-primary-600 font-bold">
+    <div class="flex h-16 overflow-x-auto" id="mobile-nav-scroll">
+      <button onclick="switchTab('dashboard')" data-mobile-nav="dashboard" class="mobile-nav-btn flex-1 min-w-[4.4rem] shrink-0 flex flex-col items-center justify-center gap-1 text-primary-600 font-bold">
         <i data-lucide="home" class="w-5 h-5"></i>
         <span class="text-[11px]">الرئيسية</span>
       </button>
-      <button onclick="switchTab('new-order')" data-mobile-nav="new-order" class="mobile-nav-btn flex flex-col items-center justify-center gap-1 text-slate-500 font-semibold">
+      <button onclick="switchTab('new-order')" data-mobile-nav="new-order" class="mobile-nav-btn flex-1 min-w-[4.4rem] shrink-0 flex flex-col items-center justify-center gap-1 text-slate-500 font-semibold">
         <i data-lucide="plus-circle" class="w-5 h-5"></i>
         <span class="text-[11px]">أوردر جديد</span>
       </button>
-      <button onclick="switchTab('payment')" data-mobile-nav="payment" class="mobile-nav-btn flex flex-col items-center justify-center gap-1 text-slate-500 font-semibold">
+      <button onclick="switchTab('orders')" data-mobile-nav="orders" class="mobile-nav-btn flex-1 min-w-[4.4rem] shrink-0 flex flex-col items-center justify-center gap-1 text-slate-500 font-semibold">
+        <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+        <span class="text-[11px]">الأوردرات</span>
+      </button>
+      <button onclick="switchTab('payment')" data-mobile-nav="payment" class="mobile-nav-btn flex-1 min-w-[4.4rem] shrink-0 flex flex-col items-center justify-center gap-1 text-slate-500 font-semibold">
         <i data-lucide="banknote" class="w-5 h-5"></i>
         <span class="text-[11px]">تحصيل</span>
       </button>
-      <button onclick="switchTab('salons')" data-mobile-nav="salons" class="mobile-nav-btn flex flex-col items-center justify-center gap-1 text-slate-500 font-semibold">
+      <button onclick="switchTab('salons')" data-mobile-nav="salons" class="mobile-nav-btn flex-1 min-w-[4.4rem] shrink-0 flex flex-col items-center justify-center gap-1 text-slate-500 font-semibold">
         <i data-lucide="store" class="w-5 h-5"></i>
         <span class="text-[11px]">الصالونات</span>
       </button>
-      <button onclick="switchTab('products')" data-mobile-nav="products" class="mobile-nav-btn flex flex-col items-center justify-center gap-1 text-slate-500 font-semibold">
+      <button onclick="switchTab('products')" data-mobile-nav="products" class="mobile-nav-btn flex-1 min-w-[4.4rem] shrink-0 flex flex-col items-center justify-center gap-1 text-slate-500 font-semibold">
         <i data-lucide="package" class="w-5 h-5"></i>
         <span class="text-[11px]">الأصناف</span>
       </button>
-      <button onclick="switchTab('purchases')" data-mobile-nav="purchases" class="mobile-nav-btn flex flex-col items-center justify-center gap-1 text-slate-500 font-semibold">
+      <button onclick="switchTab('purchases')" data-mobile-nav="purchases" class="mobile-nav-btn flex-1 min-w-[4.4rem] shrink-0 flex flex-col items-center justify-center gap-1 text-slate-500 font-semibold">
         <i data-lucide="truck" class="w-5 h-5"></i>
         <span class="text-[11px]">المشتريات</span>
       </button>
-      <button onclick="switchTab('suppliers')" data-mobile-nav="suppliers" class="mobile-nav-btn flex flex-col items-center justify-center gap-1 text-slate-500 font-semibold">
+      <button onclick="switchTab('suppliers')" data-mobile-nav="suppliers" class="mobile-nav-btn flex-1 min-w-[4.4rem] shrink-0 flex flex-col items-center justify-center gap-1 text-slate-500 font-semibold">
         <i data-lucide="users" class="w-5 h-5"></i>
         <span class="text-[11px]">الموردين</span>
       </button>
@@ -1101,6 +1136,77 @@
 
 
   <!-- ==================== CUSTOM CONFIRMATION DIALOG ==================== -->
+  <!-- ==================== MODAL: ORDER DETAILS ==================== -->
+  <div id="modal-order-details" class="hidden fixed inset-0 bg-slate-900/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-lg max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="bg-navy-900 text-white p-4 flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <h3 id="od-title" class="text-lg font-extrabold truncate">تفاصيل الأوردر</h3>
+          <p id="od-sub" class="text-xs text-slate-300 mt-1"></p>
+        </div>
+        <button onclick="closeModal('modal-order-details')" class="p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white shrink-0" aria-label="إغلاق">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div id="od-body" class="p-4 overflow-y-auto space-y-3"></div>
+      <div class="p-3 border-t border-slate-200 bg-white grid grid-cols-2 gap-2">
+        <button onclick="orderDetailsStatement()" class="bg-navy-900 hover:bg-navy-800 text-white text-sm font-extrabold py-2.5 rounded-xl flex items-center justify-center gap-1.5"><i data-lucide="file-image" class="w-4 h-4"></i><span>كشف حساب الأوردر</span></button>
+        <button onclick="copyOrderText()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-extrabold py-2.5 rounded-xl flex items-center justify-center gap-1.5"><i data-lucide="copy" class="w-4 h-4"></i><span>نسخ للواتساب</span></button>
+        <button onclick="orderDetailsEdit()" class="bg-amber-500 hover:bg-amber-600 text-white text-sm font-extrabold py-2.5 rounded-xl flex items-center justify-center gap-1.5"><i data-lucide="pencil" class="w-4 h-4"></i><span>تعديل الأوردر</span></button>
+        <button onclick="orderDetailsDelete()" class="bg-rose-600 hover:bg-rose-700 text-white text-sm font-extrabold py-2.5 rounded-xl flex items-center justify-center gap-1.5"><i data-lucide="trash-2" class="w-4 h-4"></i><span>حذف الأوردر</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: EDIT ORDER ==================== -->
+  <div id="modal-order-edit" class="hidden fixed inset-0 bg-slate-900/60 z-[56] flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-lg max-h-[94vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="bg-navy-900 text-white p-4 flex items-center justify-between gap-3">
+        <h3 class="text-lg font-extrabold">تعديل الأوردر</h3>
+        <button onclick="closeModal('modal-order-edit')" class="p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white" aria-label="إغلاق">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="p-4 overflow-y-auto space-y-3.5">
+        <div class="grid grid-cols-2 gap-2">
+          <div class="min-w-0">
+            <label for="oe-salon" class="block text-xs font-bold text-slate-600 mb-1">الصالون</label>
+            <select id="oe-salon" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-sm font-bold outline-none"></select>
+          </div>
+          <div class="min-w-0">
+            <label for="oe-date" class="block text-xs font-bold text-slate-600 mb-1">تاريخ الأوردر</label>
+            <input type="date" id="oe-date" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-sm font-bold outline-none" />
+          </div>
+        </div>
+        <div>
+          <span class="block text-xs font-bold text-slate-600 mb-1">الأصناف</span>
+          <div id="oe-items" class="space-y-2"></div>
+          <div class="grid grid-cols-5 gap-2 mt-2">
+            <select id="oe-add-preset" onchange="oeAddPreset()" aria-label="إضافة صنف محفوظ" class="col-span-3 min-w-0 bg-white border border-slate-300 rounded-xl px-2.5 py-2.5 text-sm font-bold outline-none"></select>
+            <button type="button" onclick="oeAddBlank()" class="col-span-2 bg-slate-100 hover:bg-slate-200 text-navy-900 font-extrabold rounded-xl text-sm border border-slate-300">+ صنف يدوي</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div class="min-w-0">
+            <label for="oe-discount" class="block text-xs font-bold text-slate-600 mb-1">الخصم (ج.م)</label>
+            <input type="number" id="oe-discount" min="0" step="any" oninput="oeRecalc()" placeholder="0" class="w-full bg-white border-2 border-violet-300 rounded-xl px-3 py-2.5 text-base font-extrabold text-violet-700 outline-none" />
+          </div>
+          <div class="min-w-0">
+            <label for="oe-paid" class="block text-xs font-bold text-slate-600 mb-1">المدفوع كاش (ج.م)</label>
+            <input type="number" id="oe-paid" min="0" step="any" oninput="oeRecalc()" placeholder="0" class="w-full bg-white border-2 border-primary-500 rounded-xl px-3 py-2.5 text-base font-extrabold text-primary-700 outline-none" />
+          </div>
+        </div>
+        <div id="oe-totals" class="bg-emerald-50/70 border-2 border-primary-100 rounded-2xl p-3 space-y-1.5 text-sm font-bold"></div>
+        <input type="text" id="oe-note" placeholder="ملاحظة على الأوردر (اختياري)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold outline-none" />
+      </div>
+      <div class="p-3 border-t border-slate-200 flex gap-2">
+        <button onclick="saveOrderEdit()" class="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-extrabold py-3 rounded-xl">حفظ التعديلات</button>
+        <button onclick="closeModal('modal-order-edit')" class="px-4 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+
   <div id="modal-confirm" class="hidden fixed inset-0 bg-slate-900/70 z-[60] flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4 text-center">
       <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
@@ -1292,6 +1398,11 @@
         const t = x[0], n = nm('salons', t.salonId);
         return t.type === 'discount' ? `خصم ${m(t.discountAmount)} ج.م لـ ${n}` : t.type === 'payment' ? `تحصيل ${m(t.paidAmount)} ج.م من ${n}` : `أوردر لـ ${n} بقيمة ${m(t.totalAmount)} ج.م`;
       }
+      if ((x = removed('transactions')).length) {
+        const t = x[0];
+        return t.type === 'order' ? `حذف أوردر ${nm('salons', t.salonId)} بقيمة ${m(t.totalAmount)} ج.م` : 'حذف حركة';
+      }
+      if ((x = edited('transactions')) && x.type === 'order') return `تعديل أوردر ${nm('salons', x.salonId)}`;
       if ((x = added('suppliers')).length) return `إضافة مورد: ${x[0].name}`;
       if ((x = removed('suppliers')).length) return `حذف مورد: ${x[0].name}`;
       if ((x = added('purchases')).length) {
@@ -1456,7 +1567,7 @@
 
     // Navigation Tab Switching
     function switchTab(tabName) {
-      const views = ['dashboard', 'new-order', 'payment', 'salons', 'products', 'purchases', 'suppliers'];
+      const views = ['dashboard', 'new-order', 'orders', 'payment', 'salons', 'products', 'purchases', 'suppliers'];
       views.forEach(v => {
         document.getElementById(`view-${v}`).classList.add('hidden');
       });
@@ -1478,6 +1589,7 @@
         if (btn.dataset.mobileNav === tabName) {
           btn.classList.add('text-primary-600', 'font-bold');
           btn.classList.remove('text-slate-500', 'font-semibold');
+          try { btn.scrollIntoView({ inline: 'center', block: 'nearest' }); } catch (e) {}
         } else {
           btn.classList.remove('text-primary-600', 'font-bold');
           btn.classList.add('text-slate-500', 'font-semibold');
@@ -1494,6 +1606,7 @@
       populateSalonDropdowns();
       populatePresetProductsDropdown();
       renderSalonsList();
+      renderOrdersView();
       renderProductsList();
       renderLowStockAlert();
       renderPurchasesView();
@@ -1662,7 +1775,8 @@
       if (prod) {
         selectedPresetProductId = prod.id;
         document.getElementById('order-item-name').value = prod.name;
-        document.getElementById('order-item-price').value = prod.price;
+        orderItemAutoId = null;
+        onOrderItemNameInput();
         document.getElementById('order-item-qty').value = 1;
       }
     }
@@ -1744,6 +1858,7 @@
       nameInput.value = '';
       qtyInput.value = '1';
       priceInput.value = '';
+      resetOrderItemHint();
 
       renderOrderItems();
       if (autoAdded) {
@@ -2201,7 +2316,7 @@
                   <span class="inline-flex items-center gap-1.5 text-xs font-extrabold bg-amber-100 text-amber-800 px-2.5 py-1 rounded-lg">
                     <i data-lucide="shopping-bag" class="w-3.5 h-3.5"></i> فاتورة بضاعة
                   </span>
-                  <span class="text-xs font-bold text-slate-400">${tx.date}</span>
+                  <button onclick="closeModal('modal-ledger'); openOrderDetails('${tx.id}')" class="text-xs font-extrabold text-primary-700 bg-primary-50 px-2.5 py-1 rounded-lg">${tx.date} • تفاصيل</button>
                 </div>
                 <p class="text-xs text-slate-600 font-semibold leading-relaxed">${itemsSummary}</p>
                 ${tx.discount > 0 ? `<p class="text-xs font-extrabold text-violet-700">خصم ${formatMoney(tx.discount)} ج.م (قبل الخصم ${formatMoney(tx.subtotal)})</p>` : ''}
@@ -3286,6 +3401,11 @@
         showToast('اكتب اسم الصنف');
         return;
       }
+      const dupProd = findProductByName(name);
+      if (dupProd) {
+        showToast(`الصنف "${dupProd.name}" موجود بالفعل، ما اتضافش تاني`);
+        return;
+      }
       if (isNaN(price) || price < 0) {
         showToast('اكتب سعر البيع للصنف');
         return;
@@ -3312,6 +3432,7 @@
       priceInput.value = '';
       costInput.value = '';
       stockInput.value = '';
+      onNewProductNameInput();
       saveAppData();
       showToast('تم إضافة الصنف لقائمة الأسعار');
     }
@@ -3376,6 +3497,8 @@
       const costRaw = document.getElementById('edit-product-cost').value;
       const cost = costRaw === '' ? null : parseFloat(costRaw);
       if (!name) { showToast('اكتب اسم الصنف'); return; }
+      const dupEdit = findProductByName(name, id);
+      if (dupEdit) { showToast(`فيه صنف تاني بنفس الاسم "${dupEdit.name}"، غيّر الاسم`); return; }
       if (price !== null && (isNaN(price) || price < 0)) { showToast('سعر البيع غير صحيح'); return; }
       if (cost !== null && (isNaN(cost) || cost < 0)) { showToast('سعر الشراء غير صحيح'); return; }
       const p = appData.products.find(x => x.id === id);
@@ -3436,6 +3559,528 @@
         </div>
       `).join('');
       if (window.lucide) lucide.createIcons();
+    }
+
+    // ==================== ORDERS LOG (سجل الأوردرات) ====================
+    let ordersPeriod = 'all';
+    let activeOrderId = null;
+    let orderEdit = null;
+
+    const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    function ordDateLabel(dateStr) {
+      const p = (dateStr || '').split('-');
+      if (p.length !== 3) return dateStr || '';
+      const dt = new Date(+p[0], +p[1] - 1, +p[2]);
+      const tag = dateStr === localDateISO() ? 'النهاردة'
+        : dateStr === localDateISO(new Date(Date.now() - 86400000)) ? 'إمبارح'
+        : DAY_NAMES[dt.getDay()];
+      return `${tag} • ${p[2]}/${p[1]}/${p[0]}`;
+    }
+
+    function ordTimeLabel(ts) {
+      if (!ts) return '';
+      const d = new Date(ts);
+      let h = d.getHours();
+      const ap = h >= 12 ? 'م' : 'ص';
+      h = h % 12 || 12;
+      return `${h}:${String(d.getMinutes()).padStart(2, '0')} ${ap}`;
+    }
+
+    const ordNo = tx => '#' + String(tx.id || '').slice(-4);
+    const ordSubtotal = tx => (tx.subtotal != null ? Number(tx.subtotal) : (tx.items || []).reduce((s, i) => s + (Number(i.qty) || 0) * (Number(i.price) || 0), 0));
+    const ordSalon = tx => appData.salons.find(s => s.id === tx.salonId);
+
+    function setOrdersPeriod(p) {
+      ordersPeriod = p;
+      const d = document.getElementById('orders-filter-date');
+      if (d) d.value = '';
+      renderOrdersView();
+    }
+
+    function onOrdersDateChange() {
+      renderOrdersView();
+    }
+
+    function renderOrdersView() {
+      const list = document.getElementById('orders-list');
+      if (!list) return;
+
+      // salon filter options (rebuild only when the salons change, so the selection stays)
+      const sel = document.getElementById('orders-filter-salon');
+      const sig = appData.salons.map(s => s.id + '|' + s.name).join('~');
+      if (sel.dataset.sig !== sig) {
+        const keep = sel.value;
+        sel.innerHTML = '<option value="">كل الصالونات</option>' + appData.salons.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
+        sel.value = appData.salons.some(s => s.id === keep) ? keep : '';
+        sel.dataset.sig = sig;
+      }
+
+      // period chips
+      document.querySelectorAll('#orders-period-chips button').forEach(b => {
+        const on = b.dataset.period === ordersPeriod && !document.getElementById('orders-filter-date').value;
+        b.className = 'px-3.5 py-1.5 rounded-full text-xs font-extrabold ' + (on ? 'bg-navy-900 text-white' : 'bg-white text-slate-600 border border-slate-200');
+      });
+
+      const q = (document.getElementById('orders-search').value || '').trim().toLowerCase();
+      const salonF = sel.value;
+      const dateF = document.getElementById('orders-filter-date').value;
+      const today = localDateISO();
+      const weekStart = localDateISO(new Date(Date.now() - 6 * 86400000));
+
+      const orders = appData.transactions
+        .filter(t => t.type === 'order')
+        .filter(t => !salonF || t.salonId === salonF)
+        .filter(t => {
+          if (dateF) return t.date === dateF;
+          if (ordersPeriod === 'today') return t.date === today;
+          if (ordersPeriod === 'week') return t.date >= weekStart && t.date <= today;
+          if (ordersPeriod === 'month') return (t.date || '').slice(0, 7) === today.slice(0, 7);
+          return true;
+        })
+        .filter(t => {
+          if (!q) return true;
+          const sal = ordSalon(t);
+          const hay = [sal ? sal.name : '', t.note || '', ...(t.items || []).map(i => i.name)].join(' ').toLowerCase();
+          return hay.includes(q);
+        })
+        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+      const sum = k => orders.reduce((s, t) => s + (Number(t[k]) || 0), 0);
+      const tile = (label, val, cls) => `<div class="bg-slate-50 rounded-xl p-2"><span class="block text-[10px] font-bold text-slate-400">${label}</span><span class="text-sm font-extrabold ${cls}">${val}</span></div>`;
+      document.getElementById('orders-summary').innerHTML =
+        tile('عدد الأوردرات', orders.length, 'text-navy-900') +
+        tile('إجمالي المبيعات', formatMoney(sum('totalAmount')) + ' ج.م', 'text-navy-900') +
+        tile('مدفوع كاش', formatMoney(sum('paidAmount')) + ' ج.م', 'text-primary-700') +
+        tile('آجل', formatMoney(sum('debtAdded')) + ' ج.م', 'text-rose-600');
+
+      if (!orders.length) {
+        list.innerHTML = `<div class="bg-white rounded-2xl p-8 text-center text-slate-400 text-sm font-bold border border-slate-200">مفيش أوردرات مطابقة</div>`;
+        return;
+      }
+
+      // group by date
+      const groups = [];
+      orders.forEach(t => {
+        let g = groups[groups.length - 1];
+        if (!g || g.date !== t.date) { g = { date: t.date, items: [] }; groups.push(g); }
+        g.items.push(t);
+      });
+
+      list.innerHTML = groups.map(g => {
+        const gTotal = g.items.reduce((s, t) => s + (Number(t.totalAmount) || 0), 0);
+        const head = `<div class="flex items-center justify-between px-1 pt-1 text-xs font-extrabold text-slate-500"><span>${ordDateLabel(g.date)}</span><span>${g.items.length} أوردر • ${formatMoney(gTotal)} ج.م</span></div>`;
+        const cards = g.items.map(t => {
+          const sal = ordSalon(t);
+          const items = (t.items || []).map(i => `${esc(i.name)} × ${i.qty}`).join('، ');
+          const disc = Number(t.discount) > 0 ? `<p class="text-xs font-extrabold text-violet-700">خصم ${formatMoney(t.discount)} ج.م</p>` : '';
+          const badge = Number(t.debtAdded) > 0
+            ? `<span class="inline-block text-[11px] font-extrabold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-lg">آجل ${formatMoney(t.debtAdded)}</span>`
+            : `<span class="inline-block text-[11px] font-extrabold text-primary-600 bg-primary-50 px-2 py-0.5 rounded-lg">كاش بالكامل</span>`;
+          const btn = (fn, icon, label, cls) => `<button onclick="${fn}('${t.id}')" class="${cls} text-[11px] font-extrabold py-2 rounded-lg flex flex-col items-center gap-0.5"><i data-lucide="${icon}" class="w-4 h-4"></i><span>${label}</span></button>`;
+          return `
+            <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-2.5">
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <p class="font-extrabold text-navy-900 truncate">${sal ? esc(sal.name) : 'صالون محذوف'}</p>
+                  <p class="text-[11px] text-slate-400 font-bold">${ordNo(t)} • ${ordTimeLabel(t.timestamp)}</p>
+                </div>
+                <div class="text-left shrink-0 space-y-1">
+                  <span class="block text-base font-extrabold text-navy-900">${formatMoney(t.totalAmount)} ج.م</span>
+                  ${badge}
+                </div>
+              </div>
+              <p class="text-xs text-slate-600 font-semibold leading-relaxed">${items}</p>
+              ${disc}
+              ${t.note ? `<p class="text-[11px] text-slate-500 italic">ملاحظة: ${esc(t.note)}</p>` : ''}
+              <div class="grid grid-cols-4 gap-1.5 pt-2 border-t border-slate-100">
+                ${btn('openOrderDetails', 'eye', 'تفاصيل', 'bg-slate-100 text-navy-900')}
+                ${btn('openOrderStatementById', 'file-image', 'كشف حساب', 'bg-navy-900 text-white')}
+                ${btn('openOrderEdit', 'pencil', 'تعديل', 'bg-amber-100 text-amber-800')}
+                ${btn('deleteOrder', 'trash-2', 'حذف', 'bg-rose-50 text-rose-600')}
+              </div>
+            </div>`;
+        }).join('');
+        return head + cards;
+      }).join('');
+    }
+
+    function findOrder(id) {
+      return appData.transactions.find(t => t.id === id && t.type === 'order');
+    }
+
+    // ---- details
+    function openOrderDetails(id) {
+      const tx = findOrder(id);
+      if (!tx) return;
+      activeOrderId = id;
+      renderOrderDetails();
+      document.getElementById('modal-order-details').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function renderOrderDetails() {
+      const tx = findOrder(activeOrderId);
+      if (!tx) { closeModal('modal-order-details'); return; }
+      const sal = ordSalon(tx);
+      document.getElementById('od-title').textContent = sal ? sal.name : 'صالون محذوف';
+      document.getElementById('od-sub').textContent = `أوردر ${ordNo(tx)} • ${ordDateLabel(tx.date)} • ${ordTimeLabel(tx.timestamp)}`;
+      const sub = ordSubtotal(tx);
+      const disc = Number(tx.discount) || 0;
+      const row = (label, val, cls = '') => `<div class="flex items-center justify-between text-sm font-bold ${cls}"><span>${label}</span><span>${val}</span></div>`;
+      const items = (tx.items || []).map(i => `
+        <div class="flex items-center justify-between gap-2 py-2 border-b border-slate-100 last:border-0">
+          <div class="min-w-0"><p class="text-sm font-bold text-navy-900">${esc(i.name)}</p><p class="text-xs text-slate-500 font-semibold">${i.qty} × ${formatMoney(i.price)} ج.م</p></div>
+          <span class="text-sm font-extrabold text-navy-900 shrink-0">${formatMoney((Number(i.qty) || 0) * (Number(i.price) || 0))}</span>
+        </div>`).join('');
+      document.getElementById('od-body').innerHTML = `
+        <div class="bg-slate-50 rounded-xl px-3 py-1">${items || '<p class="text-sm text-slate-400 py-3">مفيش أصناف</p>'}</div>
+        <div class="space-y-1.5 bg-emerald-50/70 border border-primary-100 rounded-xl p-3">
+          ${disc > 0 ? row('الإجمالي قبل الخصم', formatMoney(sub) + ' ج.م') : ''}
+          ${disc > 0 ? row('الخصم', '-' + formatMoney(disc) + ' ج.م', 'text-violet-700') : ''}
+          ${row('إجمالي الأوردر', formatMoney(tx.totalAmount) + ' ج.م', 'text-navy-900 text-base')}
+          ${row('مدفوع كاش', formatMoney(tx.paidAmount) + ' ج.م', 'text-primary-700')}
+          ${row('متبقي آجل', formatMoney(tx.debtAdded) + ' ج.م', 'text-rose-600')}
+        </div>
+        ${tx.note ? `<p class="text-xs text-slate-600 bg-slate-50 rounded-xl px-3 py-2"><b>ملاحظة:</b> ${esc(tx.note)}</p>` : ''}
+        ${sal ? `<p class="text-xs text-slate-500 font-semibold">${esc(sal.area || '')}${sal.phone ? ' • ' + esc(sal.phone) : ''} — الرصيد الحالي على الصالون: <b class="${Number(sal.balance) > 0 ? 'text-rose-600' : 'text-primary-600'}">${formatMoney(sal.balance)} ج.م</b></p>` : ''}`;
+    }
+
+    function orderDetailsStatement() { openOrderStatementById(activeOrderId); }
+    function orderDetailsEdit() { openOrderEdit(activeOrderId); }
+    function orderDetailsDelete() { deleteOrder(activeOrderId); }
+
+    // كشف حساب الأوردر ده بس (صورة)
+    function openOrderStatementById(id) {
+      const tx = findOrder(id);
+      if (!tx || !ordSalon(tx)) { showToast('الصالون بتاع الأوردر ده اتحذف'); return; }
+      openOrderStatementImage(tx.salonId, tx);
+    }
+
+    function copyOrderText() {
+      const tx = findOrder(activeOrderId);
+      if (!tx) return;
+      const sal = ordSalon(tx);
+      const disc = Number(tx.discount) || 0;
+      let msg = `*أوردر ${sal ? sal.name : ''}*\n${ordDateLabel(tx.date)}\n------------------------\n`;
+      (tx.items || []).forEach(i => { msg += `• ${i.name} × ${i.qty} × ${formatMoney(i.price)} = ${formatMoney((Number(i.qty) || 0) * (Number(i.price) || 0))}\n`; });
+      msg += `------------------------\n`;
+      if (disc > 0) msg += `الإجمالي قبل الخصم: ${formatMoney(ordSubtotal(tx))} ج.م\nالخصم: ${formatMoney(disc)} ج.م\n`;
+      msg += `*الإجمالي: ${formatMoney(tx.totalAmount)} ج.م*\nمدفوع كاش: ${formatMoney(tx.paidAmount)} ج.م\nمتبقي آجل: ${formatMoney(tx.debtAdded)} ج.م`;
+      if (tx.note) msg += `\nملاحظة: ${tx.note}`;
+      const fallback = () => {
+        const ta = document.createElement('textarea');
+        ta.value = msg; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); } catch (e) {}
+        document.body.removeChild(ta);
+        showToast('تم نسخ الأوردر 📋');
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(msg).then(() => showToast('تم نسخ الأوردر 📋')).catch(fallback);
+      } else fallback();
+    }
+
+    // ---- balance / stock effects of an order (used by edit and delete)
+    function revertOrderEffects(tx) {
+      const sal = appData.salons.find(s => s.id === tx.salonId);
+      if (sal) sal.balance = (Number(sal.balance) || 0) - (Number(tx.debtAdded) || 0);   // not clamped here: edit adds the new debt right after
+      (tx.items || []).forEach(it => {
+        if (!it.productId) return;
+        const p = appData.products.find(x => x.id === it.productId);
+        if (hasStock(p)) p.stock = Number(p.stock) + (Number(it.qty) || 0);
+      });
+    }
+
+    function applyOrderEffects(tx) {
+      const low = [];
+      const sal = appData.salons.find(s => s.id === tx.salonId);
+      if (sal) {
+        sal.balance = (Number(sal.balance) || 0) + (Number(tx.debtAdded) || 0);
+        if (!sal.lastTxDate || tx.date > sal.lastTxDate) sal.lastTxDate = tx.date;
+      }
+      (tx.items || []).forEach(it => {
+        if (!it.productId) return;
+        const p = appData.products.find(x => x.id === it.productId);
+        if (!hasStock(p)) return;
+        p.stock = Math.max(0, Number(p.stock) - (Number(it.qty) || 0));
+        if (p.stock <= LOW_STOCK_THRESHOLD && !low.includes(p)) low.push(p);
+      });
+      return low;
+    }
+
+    function clampSalonBalance(id) {
+      const s = appData.salons.find(x => x.id === id);
+      if (s && Number(s.balance) < 0) s.balance = 0;
+    }
+
+    // ---- delete
+    function deleteOrder(id) {
+      const tx = findOrder(id);
+      if (!tx) return;
+      const sal = ordSalon(tx);
+      const parts = [`هيتم حذف أوردر ${sal ? sal.name : ''} بقيمة ${formatMoney(tx.totalAmount)} ج.م.`];
+      if (Number(tx.debtAdded) > 0) parts.push(`وهيتشال ${formatMoney(tx.debtAdded)} ج.م آجل من حساب الصالون.`);
+      if ((tx.items || []).some(i => i.productId && hasStock(appData.products.find(p => p.id === i.productId)))) parts.push('وهترجع كميات الأصناف للمخزن.');
+      if (sal && (Number(sal.balance) || 0) - (Number(tx.debtAdded) || 0) < 0) parts.push('ملحوظة: الصالون دفع من حسابه بعد الأوردر ده، فرصيده هيبقى 0 مش بالسالب.');
+      parts.push('تقدر تتراجع بزرار الرجوع ↩.');
+      document.getElementById('confirm-title').textContent = 'حذف الأوردر؟';
+      document.getElementById('confirm-message').textContent = parts.join(' ');
+      document.getElementById('confirm-yes-btn').onclick = () => {
+        const t = findOrder(id);
+        if (!t) { closeModal('modal-confirm'); return; }
+        revertOrderEffects(t);
+        clampSalonBalance(t.salonId);
+        appData.transactions = appData.transactions.filter(x => x.id !== id);
+        saveAppData();
+        closeModal('modal-confirm');
+        closeModal('modal-order-details');
+        showToast('تم حذف الأوردر وتحديث الحساب والمخزن');
+      };
+      document.getElementById('modal-confirm').classList.remove('hidden');
+    }
+
+    // ---- edit
+    function openOrderEdit(id) {
+      const tx = findOrder(id);
+      if (!tx) return;
+      orderEdit = {
+        id,
+        items: (tx.items || []).map(i => ({ name: i.name, qty: i.qty, price: i.price, productId: i.productId }))
+      };
+      document.getElementById('oe-salon').innerHTML = appData.salons.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
+      document.getElementById('oe-salon').value = tx.salonId;
+      document.getElementById('oe-date').value = tx.date || localDateISO();
+      document.getElementById('oe-discount').value = Number(tx.discount) > 0 ? tx.discount : '';
+      document.getElementById('oe-paid').value = tx.paidAmount;
+      document.getElementById('oe-note').value = tx.note || '';
+      document.getElementById('oe-add-preset').innerHTML = '<option value="">+ إضافة صنف محفوظ</option>' +
+        appData.products.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
+      oeRenderItems();
+      document.getElementById('modal-order-edit').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function oeRenderItems() {
+      const box = document.getElementById('oe-items');
+      box.innerHTML = orderEdit.items.map((it, i) => `
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-2">
+          <div class="flex gap-2">
+            <input type="text" value="${esc(it.name)}" oninput="oeSet(${i}, 'name', this.value)" placeholder="اسم الصنف" aria-label="اسم الصنف" class="flex-1 min-w-0 bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm font-bold outline-none" />
+            <button type="button" onclick="oeRemove(${i})" class="shrink-0 text-rose-500 bg-white border border-slate-200 rounded-xl px-3 font-extrabold" aria-label="حذف الصنف">✕</button>
+          </div>
+          <div class="grid grid-cols-3 gap-2 px-1 text-[10px] font-bold text-slate-400"><span>الكمية</span><span>سعر الوحدة</span><span class="text-center">الإجمالي</span></div>
+          <div class="grid grid-cols-3 gap-2 items-center">
+            <input type="number" min="0" step="any" value="${esc(it.qty)}" oninput="oeSet(${i}, 'qty', this.value)" placeholder="الكمية" aria-label="الكمية" class="min-w-0 bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-sm font-bold outline-none" />
+            <input type="number" min="0" step="any" value="${esc(it.price)}" oninput="oeSet(${i}, 'price', this.value)" placeholder="سعر الوحدة" aria-label="سعر الوحدة" class="min-w-0 bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-sm font-bold outline-none" />
+            <span id="oe-line-${i}" class="text-sm font-extrabold text-navy-900 text-center"></span>
+          </div>
+        </div>`).join('') || '<p class="text-xs text-slate-400 font-bold text-center py-2">مفيش أصناف، ضيف صنف</p>';
+      oeRecalc();
+    }
+
+    function oeSet(i, k, v) {
+      orderEdit.items[i][k] = v;
+      oeRecalc();
+    }
+
+    function oeRemove(i) { orderEdit.items.splice(i, 1); oeRenderItems(); }
+    function oeAddBlank() { orderEdit.items.push({ name: '', qty: 1, price: '' }); oeRenderItems(); }
+    function oeAddPreset() {
+      const sel = document.getElementById('oe-add-preset');
+      const p = appData.products.find(x => x.id === sel.value);
+      sel.value = '';
+      if (!p) return;
+      orderEdit.items.push({ name: p.name, qty: 1, price: p.price == null ? '' : p.price, productId: p.id });
+      oeRenderItems();
+    }
+
+    function oeCalc() {
+      const lineOf = it => (parseFloat(it.qty) || 0) * (parseFloat(it.price) || 0);
+      const subtotal = orderEdit.items.reduce((s, it) => s + lineOf(it), 0);
+      const discRaw = parseFloat(document.getElementById('oe-discount').value);
+      const discount = isNaN(discRaw) || discRaw <= 0 ? 0 : Math.min(discRaw, subtotal);
+      const total = subtotal - discount;
+      const paidRaw = parseFloat(document.getElementById('oe-paid').value);
+      const paid = isNaN(paidRaw) || paidRaw < 0 ? 0 : Math.min(paidRaw, total);
+      return { lineOf, subtotal, discount, total, paid, debt: Math.max(0, total - paid), paidClamped: !isNaN(paidRaw) && paidRaw > total };
+    }
+
+    function oeRecalc() {
+      if (!orderEdit) return;
+      const c = oeCalc();
+      orderEdit.items.forEach((it, i) => {
+        const el = document.getElementById('oe-line-' + i);
+        if (el) el.textContent = formatMoney(c.lineOf(it));
+      });
+      const row = (l, v, cls = '') => `<div class="flex items-center justify-between ${cls}"><span>${l}</span><span>${v}</span></div>`;
+      document.getElementById('oe-totals').innerHTML =
+        (c.discount > 0 ? row('قبل الخصم', formatMoney(c.subtotal) + ' ج.م') + row('الخصم', '-' + formatMoney(c.discount) + ' ج.م', 'text-violet-700') : '') +
+        row('إجمالي الأوردر', formatMoney(c.total) + ' ج.م', 'text-navy-900 text-base') +
+        row('متبقي آجل', formatMoney(c.debt) + ' ج.م', 'text-rose-600') +
+        (c.paidClamped ? '<p class="text-[11px] text-amber-700">المدفوع أكبر من الإجمالي، هيتسجل بقيمة الإجمالي</p>' : '');
+    }
+
+    function saveOrderEdit() {
+      const tx = findOrder(orderEdit && orderEdit.id);
+      if (!tx) { closeModal('modal-order-edit'); return; }
+      const salonId = document.getElementById('oe-salon').value;
+      if (!salonId) { showToast('اختار الصالون'); return; }
+      const dateVal = document.getElementById('oe-date').value;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateVal)) { showToast('اختار تاريخ الأوردر'); return; }
+
+      const items = [];
+      for (const it of orderEdit.items) {
+        const name = String(it.name == null ? '' : it.name).trim();
+        const qRaw = String(it.qty == null ? '' : it.qty).trim();
+        const pRaw = String(it.price == null ? '' : it.price).trim();
+        if (!name && !qRaw && !pRaw) continue;
+        const qty = parseFloat(qRaw), price = parseFloat(pRaw);
+        if (!name) { showToast('اكتب اسم الصنف'); return; }
+        if (isNaN(qty) || qty <= 0) { showToast(`اكتب كمية صحيحة لـ "${name}"`); return; }
+        if (isNaN(price) || price < 0) { showToast(`اكتب سعر صحيح لـ "${name}"`); return; }
+        items.push({ name, qty, price, _pid: it.productId });
+      }
+      if (!items.length) { showToast('الأوردر لازم يكون فيه صنف واحد على الأقل'); return; }
+
+      // link every row to a saved product (add a new one when the name is unknown)
+      const norm = window.__normAr || (x => x);
+      let added = false;
+      const finalItems = items.map(it => {
+        let prod = it._pid ? appData.products.find(p => p.id === it._pid && p.name === it.name) : null;
+        if (!prod) prod = appData.products.find(p => p.name === it.name) || appData.products.find(p => norm(p.name) === norm(it.name));
+        if (!prod) {
+          prod = { id: 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), name: it.name, stock: null, cost: null, price: it.price };
+          appData.products.push(prod);
+          added = true;
+        }
+        return { name: it.name, qty: it.qty, price: it.price, productId: prod.id };
+      });
+
+      const subtotal = finalItems.reduce((s, i) => s + i.qty * i.price, 0);
+      const discRaw = parseFloat(document.getElementById('oe-discount').value);
+      const discount = isNaN(discRaw) || discRaw <= 0 ? 0 : Math.min(discRaw, subtotal);
+      const totalAmount = subtotal - discount;
+      const paidRaw = parseFloat(document.getElementById('oe-paid').value);
+      const paidAmount = isNaN(paidRaw) || paidRaw < 0 ? 0 : Math.min(paidRaw, totalAmount);
+      const debtAdded = Math.max(0, totalAmount - paidAmount);
+
+      const old = JSON.parse(JSON.stringify(tx));
+      revertOrderEffects(old);
+
+      tx.salonId = salonId;
+      if (dateVal !== old.date) {
+        const od = new Date(old.timestamp || Date.now());
+        const [y, m, d] = dateVal.split('-').map(Number);
+        tx.timestamp = new Date(y, m - 1, d, od.getHours(), od.getMinutes(), od.getSeconds()).getTime();
+      }
+      tx.date = dateVal;
+      tx.items = finalItems;
+      tx.subtotal = subtotal;
+      tx.discount = discount;
+      tx.totalAmount = totalAmount;
+      tx.paidAmount = paidAmount;
+      tx.debtAdded = debtAdded;
+      tx.note = document.getElementById('oe-note').value.trim();
+
+      const low = applyOrderEffects(tx);
+      clampSalonBalance(old.salonId);
+      clampSalonBalance(tx.salonId);
+      saveAppData();
+      closeModal('modal-order-edit');
+      if (!document.getElementById('modal-order-details').classList.contains('hidden')) renderOrderDetails();
+      showToast(low.length
+        ? `تم تعديل الأوردر. ⚠️ قاربت على الخلص: ${low.map(p => `${p.name} (${p.stock})`).join('، ')}`
+        : (added ? 'تم تعديل الأوردر وتسجيل صنف جديد في الأصناف' : 'تم تعديل الأوردر وتحديث الحساب والمخزن'));
+      lucide.createIcons();
+    }
+
+    // ==================== PRODUCT NAME MATCHING ====================
+    function findProductByName(name, excludeId) {
+      const norm = window.__normAr || (x => String(x || '').trim().toLowerCase());
+      const n = norm(String(name || '').trim());
+      if (!n) return null;
+      return appData.products.find(p => p.id !== excludeId && norm(String(p.name || '').trim()) === n) || null;
+    }
+
+    let orderItemAutoId = null;
+    function resetOrderItemHint() {
+      orderItemAutoId = null;
+      hideOrderSuggest();
+      const h = document.getElementById('order-item-hint');
+      if (h) { h.classList.add('hidden'); h.textContent = ''; }
+    }
+
+    // typing a saved product's name fills in its data
+    function hideOrderSuggest() {
+      const b = document.getElementById('order-suggest');
+      if (b) { b.classList.add('hidden'); b.innerHTML = ''; }
+    }
+
+    // show only the saved products that look like what is being typed
+    function renderOrderSuggest(name) {
+      const box = document.getElementById('order-suggest');
+      if (!box) return;
+      const norm = window.__normAr || (x => String(x || '').trim().toLowerCase());
+      const q = norm(name);
+      if (!q) { hideOrderSuggest(); return; }
+      const exact = findProductByName(name);
+      const matches = appData.products.filter(p => norm(String(p.name)).includes(q)).slice(0, 6);
+      if (!matches.length || (exact && matches.length === 1)) { hideOrderSuggest(); return; }
+      box.innerHTML = matches.map(p => `
+        <button type="button" onpointerdown="event.preventDefault(); pickOrderSuggestion('${p.id}')" class="w-full text-right px-3 py-2.5 border-b border-slate-100 last:border-0 hover:bg-slate-50 flex items-center justify-between gap-2">
+          <span class="text-sm font-bold text-navy-900">${String(p.name).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))}</span>
+          <span class="text-xs font-extrabold text-primary-700 shrink-0">${(p.price === null || p.price === undefined) ? '' : formatMoney(p.price) + ' ج.م'}</span>
+        </button>`).join('');
+      box.classList.remove('hidden');
+    }
+
+    function pickOrderSuggestion(id) {
+      const prod = appData.products.find(p => p.id === id);
+      if (!prod) return;
+      document.getElementById('order-item-name').value = prod.name;
+      orderItemAutoId = null;
+      onOrderItemNameInput();
+      hideOrderSuggest();
+    }
+
+    function onOrderItemNameInput() {
+      const nameEl = document.getElementById('order-item-name');
+      renderOrderSuggest(nameEl.value.trim());
+      const hint = document.getElementById('order-item-hint');
+      const priceEl = document.getElementById('order-item-price');
+      const name = nameEl.value.trim();
+      const prod = findProductByName(name);
+      if (!prod) {
+        selectedPresetProductId = null;
+        document.getElementById('order-product-preset').value = '';
+        orderItemAutoId = null;
+        if (name) {
+          hint.className = 'text-xs font-bold px-1 text-slate-500';
+          hint.textContent = 'صنف جديد: اكتب سعره وهيتسجل في الأصناف أول ما تضيفه للأوردر';
+        } else {
+          hint.className = 'hidden';
+          hint.textContent = '';
+        }
+        return;
+      }
+      selectedPresetProductId = prod.id;
+      document.getElementById('order-product-preset').value = prod.id;
+      if (orderItemAutoId !== prod.id) {
+        orderItemAutoId = prod.id;
+        priceEl.value = (prod.price === null || prod.price === undefined) ? '' : prod.price;
+      }
+      const noPrice = prod.price === null || prod.price === undefined;
+      hint.className = 'text-xs font-bold px-1 ' + (noPrice ? 'text-amber-700' : 'text-primary-700');
+      hint.textContent = noPrice
+        ? 'الصنف ده محفوظ بس ملوش سعر بيع، اكتب السعر'
+        : `صنف محفوظ: سعر البيع ${formatMoney(prod.price)} ج.م` + (hasStock(prod) ? ` • المتاح في المخزن: ${prod.stock}` : '');
+    }
+
+    function onNewProductNameInput() {
+      const h = document.getElementById('new-product-hint');
+      const dup = findProductByName(document.getElementById('new-product-name').value);
+      h.classList.toggle('hidden', !dup);
+      h.textContent = dup ? `الصنف "${dup.name}" موجود بالفعل في الأصناف` : '';
     }
 
     // ==================== MODALS & BACKUP HELPERS ====================
