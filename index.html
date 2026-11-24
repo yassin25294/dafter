@@ -3876,9 +3876,10 @@
       box.innerHTML = orderEdit.items.map((it, i) => `
         <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-2">
           <div class="flex gap-2">
-            <input type="text" value="${esc(it.name)}" oninput="oeSet(${i}, 'name', this.value)" placeholder="اسم الصنف" aria-label="اسم الصنف" class="flex-1 min-w-0 bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm font-bold outline-none" />
+            <input type="text" value="${esc(it.name)}" autocomplete="off" oninput="oeNameInput(${i}, this)" onfocus="oeNameInput(${i}, this)" onblur="setTimeout(() => oeHideSuggest(${i}), 150)" placeholder="اسم الصنف" aria-label="اسم الصنف" class="flex-1 min-w-0 bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm font-bold outline-none" />
             <button type="button" onclick="oeRemove(${i})" class="shrink-0 text-rose-500 bg-white border border-slate-200 rounded-xl px-3 font-extrabold" aria-label="حذف الصنف">✕</button>
           </div>
+          <div id="oe-suggest-${i}" class="hidden bg-white border border-slate-200 rounded-xl shadow-sm max-h-48 overflow-y-auto"></div>
           <div class="grid grid-cols-3 gap-2 px-1 text-[10px] font-bold text-slate-400"><span>الكمية</span><span>سعر الوحدة</span><span class="text-center">الإجمالي</span></div>
           <div class="grid grid-cols-3 gap-2 items-center">
             <input type="number" min="0" step="any" value="${esc(it.qty)}" oninput="oeSet(${i}, 'qty', this.value)" placeholder="الكمية" aria-label="الكمية" class="min-w-0 bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-sm font-bold outline-none" />
@@ -3892,6 +3893,45 @@
     function oeSet(i, k, v) {
       orderEdit.items[i][k] = v;
       oeRecalc();
+    }
+
+    // similar saved-product names while typing a row's name in the order edit
+    function oeHideSuggest(i) {
+      const b = document.getElementById('oe-suggest-' + i);
+      if (b) { b.classList.add('hidden'); b.innerHTML = ''; }
+    }
+
+    function oeNameInput(i, el) {
+      oeSet(i, 'name', el.value);
+      // typing a different name unlinks the row from the product it was linked to
+      const cur = orderEdit.items[i];
+      if (cur.productId) {
+        const linked = appData.products.find(p => p.id === cur.productId);
+        if (!linked || linked.name !== el.value) delete cur.productId;
+      }
+      const box = document.getElementById('oe-suggest-' + i);
+      if (!box) return;
+      const q = el.value.trim();
+      if (!q) { oeHideSuggest(i); return; }
+      const exact = findProductByName(q);
+      const matches = findSimilarProducts(q, 6);
+      if (!matches.length || (exact && matches.length === 1)) { oeHideSuggest(i); return; }
+      box.innerHTML = matches.map(p => `
+        <button type="button" onpointerdown="event.preventDefault(); oePickSuggestion(${i}, '${esc(p.id)}')" class="w-full text-right px-3 py-2.5 border-b border-slate-100 last:border-0 hover:bg-slate-50 flex items-center justify-between gap-2">
+          <span class="text-sm font-bold text-navy-900">${esc(p.name)}</span>
+          <span class="text-xs font-extrabold text-primary-700 shrink-0">${(p.price === null || p.price === undefined) ? '' : formatMoney(p.price) + ' ج.م'}</span>
+        </button>`).join('');
+      box.classList.remove('hidden');
+    }
+
+    function oePickSuggestion(i, id) {
+      const p = appData.products.find(x => x.id === id);
+      const it = orderEdit.items[i];
+      if (!p || !it) return;
+      it.name = p.name;
+      it.productId = p.id;
+      if (String(it.price == null ? '' : it.price).trim() === '' && p.price != null) it.price = p.price;
+      oeRenderItems();
     }
 
     function oeRemove(i) { orderEdit.items.splice(i, 1); oeRenderItems(); }
