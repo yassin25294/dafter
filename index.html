@@ -182,6 +182,10 @@
           <i data-lucide="clipboard-list" class="w-4 h-4"></i>
           <span>الأوردرات</span>
         </button>
+        <button onclick="switchTab('returns')" data-nav="returns" class="nav-btn flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition text-slate-300 hover:bg-slate-700">
+          <i data-lucide="undo-2" class="w-4 h-4"></i>
+          <span>المرتجعات</span>
+        </button>
         <button onclick="switchTab('payment')" data-nav="payment" class="nav-btn flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition text-slate-300 hover:bg-slate-700">
           <i data-lucide="banknote" class="w-4 h-4"></i>
           <span>تحصيل فلوس</span>
@@ -307,6 +311,16 @@
           <div>
             <span class="block font-extrabold text-base sm:text-lg">+ عمل خصم لصالون</span>
             <span class="text-xs text-violet-100 hidden sm:block">خصم من الحساب المطلوب</span>
+          </div>
+        </button>
+
+        <button onclick="openReturnsView()" class="col-span-2 bg-teal-600 hover:bg-teal-700 active:scale-[0.98] transition text-white p-4 rounded-2xl shadow-md flex flex-col sm:flex-row items-center justify-center gap-2.5 text-center">
+          <div class="bg-white/20 p-2.5 rounded-xl">
+            <i data-lucide="undo-2" class="w-6 h-6 text-white"></i>
+          </div>
+          <div>
+            <span class="block font-extrabold text-base sm:text-lg">+ تسجيل مرتجع</span>
+            <span class="text-xs text-teal-100 hidden sm:block">أصناف رجعت من صالون وترجع للمخزن</span>
           </div>
         </button>
       </div>
@@ -540,6 +554,100 @@
     </section>
 
 
+    <!-- ==================== RETURNS VIEW (المرتجعات) ==================== -->
+    <section id="view-returns" class="hidden space-y-5">
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 space-y-5">
+        <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <h2 class="text-xl font-extrabold text-navy-900 flex items-center gap-2">
+            <i data-lucide="undo-2" class="w-6 h-6 text-teal-600"></i>
+            <span>تسجيل مرتجع من صالون</span>
+          </h2>
+          <button type="button" onclick="switchTab('dashboard')" class="text-xs font-extrabold text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-xl shrink-0">الرئيسية</button>
+        </div>
+
+        <!-- 1. salon (searchable list) -->
+        <div>
+          <label class="block text-sm font-bold text-slate-700 mb-1.5">1. اختار الصالون *</label>
+          <div id="ret-salon-chosen" class="hidden bg-teal-50 border-2 border-teal-300 rounded-2xl p-3.5 flex items-center justify-between gap-3"></div>
+          <div id="ret-salon-picker" class="space-y-2">
+            <input type="search" id="ret-salon-search" oninput="renderReturnSalonList()" autocomplete="off" placeholder="ابحث باسم الصالون أو المنطقة" class="w-full bg-slate-50 border-2 border-slate-200 focus:border-teal-600 focus:bg-white rounded-xl px-3.5 py-3 text-base font-bold text-navy-900 outline-none" />
+            <div id="ret-salon-list" class="max-h-56 overflow-y-auto border border-slate-200 rounded-2xl divide-y divide-slate-100 bg-white"></div>
+          </div>
+        </div>
+
+        <!-- 2. returned items -->
+        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+          <label class="block text-sm font-bold text-slate-700">2. إيه اللي رجع؟</label>
+          <select id="ret-product-preset" onchange="onRetPreset()" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-sm font-bold text-slate-800 outline-none focus:border-teal-600">
+            <option value="">-- اختر من الأصناف المحفوظة --</option>
+          </select>
+          <div class="relative">
+            <input type="text" id="ret-item-name" autocomplete="off" oninput="onRetNameInput()" onblur="setTimeout(hideRetSuggest, 150)" placeholder="أو اكتب اسم الصنف (لو مش محفوظ)" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-sm font-semibold outline-none focus:border-teal-600" />
+            <div id="ret-suggest" class="hidden absolute z-20 inset-x-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto"></div>
+          </div>
+          <p id="ret-item-hint" class="hidden text-xs font-bold px-1"></p>
+          <div class="grid grid-cols-12 gap-2.5 items-end">
+            <div class="col-span-4">
+              <label for="ret-item-qty" class="block text-xs font-bold text-slate-500 mb-1">الكمية</label>
+              <input type="number" id="ret-item-qty" value="1" min="0" step="any" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-base font-extrabold text-center outline-none focus:border-teal-600" />
+            </div>
+            <div class="col-span-4">
+              <label for="ret-item-price" class="block text-xs font-bold text-slate-500 mb-1">سعر الوحدة (ج.م)</label>
+              <input type="number" id="ret-item-price" placeholder="0" min="0" step="any" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-base font-extrabold text-center outline-none focus:border-teal-600" />
+            </div>
+            <div class="col-span-4">
+              <button type="button" onclick="addRetItem()" class="w-full bg-navy-900 hover:bg-navy-800 active:scale-95 transition text-white font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1 text-sm">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>إضافة</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-bold text-slate-700">الأصناف المرتجعة (<span id="ret-items-count">0</span>)</span>
+            <button type="button" onclick="clearRetDraft()" class="text-xs text-rose-600 font-bold hover:underline">مسح القائمة</button>
+          </div>
+          <div id="ret-items-container" class="border border-slate-200 rounded-2xl divide-y divide-slate-100 bg-white overflow-hidden"></div>
+        </div>
+
+        <!-- 3. money -->
+        <div class="bg-teal-50/70 border-2 border-teal-200 rounded-2xl p-4 space-y-4">
+          <div class="flex items-center justify-between">
+            <span class="text-base font-extrabold text-navy-900">قيمة المرتجع:</span>
+            <span id="ret-total" class="text-2xl font-extrabold text-navy-900">0 ج.م</span>
+          </div>
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-1.5">
+              <label for="ret-cash" class="text-sm font-bold text-slate-800">المبلغ اللي اديته للصالون كاش (ج.م):</label>
+            </div>
+            <div class="flex gap-1.5 mb-1.5">
+              <button type="button" onclick="setRetCashFull()" class="text-xs bg-teal-600 text-white font-bold px-2.5 py-1 rounded-lg active:scale-95">كاش بالكامل</button>
+              <button type="button" onclick="setRetCashFromAccount()" class="text-xs bg-amber-500 text-white font-bold px-2.5 py-1 rounded-lg active:scale-95">من حسابه بس</button>
+            </div>
+            <input type="number" id="ret-cash" oninput="recalcReturn()" placeholder="0" min="0" step="any" class="w-full bg-white border-2 border-teal-500 rounded-xl px-4 py-3 text-xl font-extrabold text-teal-700 outline-none" />
+          </div>
+          <div id="ret-summary" class="space-y-1.5 pt-2 border-t border-teal-200/80 text-sm font-bold"></div>
+        </div>
+
+        <input type="text" id="ret-note" placeholder="ملاحظة على المرتجع (اختياري)..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold outline-none focus:border-teal-600" />
+
+        <button type="button" onclick="saveReturn()" class="w-full bg-teal-600 hover:bg-teal-700 active:scale-[0.99] transition text-white font-extrabold text-lg py-4 rounded-2xl shadow-lg flex items-center justify-center gap-2">
+          <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+          <span>حفظ المرتجع وإرجاعه للمخزن</span>
+        </button>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+        <div class="px-4 py-3.5 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
+          <h2 class="font-extrabold text-base text-navy-900">آخر المرتجعات</h2>
+          <span class="text-xs text-slate-500 font-semibold">أحدث 8</span>
+        </div>
+        <div id="ret-recent-list" class="p-3 space-y-3"></div>
+      </div>
+    </section>
+
     <!-- ==================== ORDERS LOG VIEW (سجل الأوردرات) ==================== -->
     <section id="view-orders" class="hidden space-y-4">
       <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 space-y-3">
@@ -696,6 +804,10 @@
         <i data-lucide="clipboard-list" class="w-5 h-5"></i>
         <span class="text-[11px]">الأوردرات</span>
       </button>
+      <button onclick="switchTab('returns')" data-mobile-nav="returns" class="mobile-nav-btn flex-1 min-w-[4.4rem] shrink-0 flex flex-col items-center justify-center gap-1 text-slate-500 font-semibold">
+        <i data-lucide="undo-2" class="w-5 h-5"></i>
+        <span class="text-[11px]">المرتجعات</span>
+      </button>
       <button onclick="switchTab('payment')" data-mobile-nav="payment" class="mobile-nav-btn flex-1 min-w-[4.4rem] shrink-0 flex flex-col items-center justify-center gap-1 text-slate-500 font-semibold">
         <i data-lucide="banknote" class="w-5 h-5"></i>
         <span class="text-[11px]">تحصيل</span>
@@ -797,6 +909,10 @@
           <button onclick="openAddDebtFromLedger()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-extrabold px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 shadow-xs">
             <i data-lucide="circle-plus" class="w-4 h-4"></i>
             <span>زيادة مبلغ</span>
+          </button>
+          <button onclick="openReturnFromLedger()" class="bg-teal-600 hover:bg-teal-700 text-white text-xs font-extrabold px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 shadow-xs">
+            <i data-lucide="undo-2" class="w-4 h-4"></i>
+            <span>مرتجع</span>
           </button>
           <button onclick="openDiscountFromLedger()" class="bg-violet-600 hover:bg-violet-700 text-white text-xs font-extrabold px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 shadow-xs">
             <i data-lucide="badge-percent" class="w-4 h-4"></i>
@@ -1407,11 +1523,12 @@
       if ((x = removed('schedule')).length) return `حذف ${nm('salons', x[0].salonId)} من جدول ${DAY_NAMES[x[0].day]}`;
       if ((x = added('transactions')).length) {
         const t = x[0], n = nm('salons', t.salonId);
+        if (t.type === 'return') return `مرتجع من ${n} بقيمة ${m(t.returnValue)} ج.م`;
         return t.type === 'discount' ? `خصم ${m(t.discountAmount)} ج.م لـ ${n}` : t.type === 'payment' ? `تحصيل ${m(t.paidAmount)} ج.م من ${n}` : `أوردر لـ ${n} بقيمة ${m(t.totalAmount)} ج.م`;
       }
       if ((x = removed('transactions')).length) {
         const t = x[0];
-        return t.type === 'order' ? `حذف أوردر ${nm('salons', t.salonId)} بقيمة ${m(t.totalAmount)} ج.م` : 'حذف حركة';
+        return t.type === 'order' ? `حذف أوردر ${nm('salons', t.salonId)} بقيمة ${m(t.totalAmount)} ج.م` : t.type === 'return' ? `حذف مرتجع ${nm('salons', t.salonId)} بقيمة ${m(t.returnValue)} ج.م` : 'حذف حركة';
       }
       if ((x = edited('transactions')) && x.type === 'order') return `تعديل أوردر ${nm('salons', x.salonId)}`;
       if ((x = added('suppliers')).length) return `إضافة مورد: ${x[0].name}`;
@@ -1578,7 +1695,7 @@
 
     // Navigation Tab Switching
     function switchTab(tabName) {
-      const views = ['dashboard', 'new-order', 'orders', 'payment', 'salons', 'products', 'purchases', 'suppliers'];
+      const views = ['dashboard', 'new-order', 'orders', 'returns', 'payment', 'salons', 'products', 'purchases', 'suppliers'];
       views.forEach(v => {
         document.getElementById(`view-${v}`).classList.add('hidden');
       });
@@ -1618,6 +1735,7 @@
       populatePresetProductsDropdown();
       renderSalonsList();
       renderOrdersView();
+      renderReturnsView();
       renderProductsList();
       renderLowStockAlert();
       renderPurchasesView();
@@ -1700,6 +1818,22 @@
         recentContainer.innerHTML = recent.map(tx => {
           const salon = appData.salons.find(s => s.id === tx.salonId);
           const salonName = salon ? salon.name : 'صالون محذوف';
+          if (tx.type === 'return') {
+            return `
+              <div class="p-3.5 flex items-center justify-between text-sm">
+                <div class="flex items-center gap-3">
+                  <div class="bg-teal-50 text-teal-600 p-2 rounded-xl">
+                    <i data-lucide="undo-2" class="w-4 h-4"></i>
+                  </div>
+                  <div>
+                    <p class="font-bold text-navy-900">مرتجع - ${salonName}</p>
+                    <p class="text-xs text-slate-400">${tx.date} • ${(tx.items || []).map(i => i.name + ' × ' + i.qty).join('، ')}</p>
+                  </div>
+                </div>
+                <span class="text-sm font-extrabold text-teal-600">${formatMoney(tx.returnValue)} ج.م</span>
+              </div>
+            `;
+          }
           if (tx.type === 'discount') {
             return `
               <div class="p-3.5 flex items-center justify-between text-sm">
@@ -2306,6 +2440,26 @@
         listContainer.innerHTML = `<div class="p-8 text-center text-slate-400 font-bold text-sm">لا توجد حركات مسجلة لهذا الصالون</div>`;
       } else {
         listContainer.innerHTML = txs.map(tx => {
+          if (tx.type === 'return') {
+            const rItems = (tx.items || []).map(i => `${i.name} (${i.qty} × ${formatMoney(i.price)})`).join('، ');
+            return `
+              <div class="bg-teal-50 rounded-2xl p-4 border border-teal-200 space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="inline-flex items-center gap-1.5 text-xs font-extrabold bg-teal-100 text-teal-800 px-2.5 py-1 rounded-lg">
+                    <i data-lucide="undo-2" class="w-3.5 h-3.5"></i> مرتجع
+                  </span>
+                  <span class="text-xs font-bold text-slate-400">${tx.date}</span>
+                </div>
+                <p class="text-xs text-slate-600 font-semibold leading-relaxed">${rItems}</p>
+                <div class="grid grid-cols-3 gap-2 pt-2 border-t border-teal-200 text-center">
+                  <div><span class="block text-[10px] font-bold text-slate-400">قيمة المرتجع</span><span class="text-sm font-extrabold text-teal-700">${formatMoney(tx.returnValue)}</span></div>
+                  <div><span class="block text-[10px] font-bold text-slate-400">كاش للصالون</span><span class="text-sm font-extrabold text-primary-700">${formatMoney(tx.cashRefund)}</span></div>
+                  <div><span class="block text-[10px] font-bold text-slate-400">اتخصم من الحساب</span><span class="text-sm font-extrabold text-rose-600">${formatMoney(tx.creditAmount)}</span></div>
+                </div>
+                ${tx.note ? `<p class="text-[11px] text-slate-500 italic">ملاحظة: ${tx.note}</p>` : ''}
+              </div>
+            `;
+          }
           if (tx.type === 'discount') {
             return `
               <div class="bg-violet-50 rounded-2xl p-4 border border-violet-200 flex items-center justify-between">
@@ -3001,7 +3155,9 @@
       if (txs.length > 0) {
         msg += `*آخر الحركات:*\n`;
         txs.forEach(t => {
-          if (t.type === 'discount') {
+          if (t.type === 'return') {
+            msg += `• [${t.date}] مرتجع بقيمة ${formatMoney(t.returnValue)} ج.م (كاش ${formatMoney(t.cashRefund)} / اتخصم من الحساب ${formatMoney(t.creditAmount)})\n`;
+          } else if (t.type === 'discount') {
             msg += `• [${t.date}] خصم: ${formatMoney(t.discountAmount)} ج.م\n`;
           } else if (t.type === 'order') {
             msg += `• [${t.date}] بضاعة بقيمة ${formatMoney(t.totalAmount)} ج.م${t.discount > 0 ? ` (بعد خصم ${formatMoney(t.discount)})` : ''} (مدفوع ${formatMoney(t.paidAmount)} / متبقي ${formatMoney(t.debtAdded)})\n`;
@@ -3132,8 +3288,18 @@
           });
           if (tx.discount > 0) rows.push({ date: '', desc: 'خصم', amount: `${formatMoney(tx.discount)}- ج.م`, kind: 'sum', color: '#6d28d9' });
           rows.push({ date: '', desc: 'المجموع', amount: `${formatMoney(tx.totalAmount)} ج.م`, kind: 'sum', color: inkBlueC() });
-          rows.push({ date: '', desc: 'المدفوع', amount: `${formatMoney(tx.paidAmount)} ج.م`, kind: 'sum', color: '#059669' });
-          rows.push({ date: '', desc: 'الآجل', amount: `${formatMoney(tx.debtAdded)} ج.م`, kind: 'sum', color: '#b91c1c', last: true });
+          const hasDebt = Number(tx.debtAdded) > 0;   // no "الآجل" row when nothing is left on credit
+          rows.push({ date: '', desc: 'المدفوع', amount: `${formatMoney(tx.paidAmount)} ج.م`, kind: 'sum', color: '#059669', last: !hasDebt });
+          if (hasDebt) rows.push({ date: '', desc: 'الآجل', amount: `${formatMoney(tx.debtAdded)} ج.م`, kind: 'sum', color: '#b91c1c', last: true });
+        } else if (tx.type === 'return') {
+          (tx.items || []).forEach(it => {
+            const q = Number(it.qty) || 0;
+            const p = Number(it.price) || 0;
+            rows.push({ date, price: formatMoney(p), qty: String(q), desc: 'مرتجع: ' + (it.name || ''), amount: formatMoney(q * p) + '-', kind: 'item' });
+          });
+          rows.push({ date: '', desc: 'قيمة المرتجع', amount: `${formatMoney(tx.returnValue)}- ج.م`, kind: 'sum', color: '#0f766e' });
+          if (Number(tx.cashRefund) > 0) rows.push({ date: '', desc: 'رجّعنا للصالون كاش', amount: `${formatMoney(tx.cashRefund)} ج.م`, kind: 'sum', color: '#059669' });
+          rows.push({ date: '', desc: 'المخصوم من الحساب', amount: `${formatMoney(tx.creditAmount)}- ج.م`, kind: 'sum', color: '#b91c1c', last: true });
         } else if (tx.type === 'discount') {
           rows.push({ date, desc: tx.note ? `خصم (${tx.note})` : 'خصم', amount: `${formatMoney(tx.discountAmount)}- ج.م`, kind: 'sum', color: '#6d28d9', last: true });
         } else {
@@ -4172,6 +4338,324 @@
           <span class="text-xs font-extrabold text-slate-600 shrink-0">${(p.price === null || p.price === undefined) ? '' : formatMoney(p.price) + ' ج.م'}${hasStock(p) ? ' • ' + p.stock + ' في المخزن' : ''}</span>
         </div>`).join('');
       box.classList.remove('hidden');
+    }
+
+    // ==================== RETURNS (المرتجعات) ====================
+    let retSalonId = null;
+    let retItems = [];
+    let retAutoId = null;
+
+    const retEsc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    function openReturnsView() { switchTab('returns'); }
+
+    function openReturnFromLedger() {
+      const id = activeLedgerSalonId;
+      closeModal('modal-ledger');
+      retSalonId = id;
+      switchTab('returns');
+    }
+
+    function renderReturnsView() {
+      if (!document.getElementById('ret-salon-list')) return;
+      if (retSalonId && !appData.salons.some(s => s.id === retSalonId)) retSalonId = null;
+      renderReturnSalon();
+      // saved products dropdown (rebuilt only when the products change)
+      const sel = document.getElementById('ret-product-preset');
+      const sig = appData.products.map(p => p.id + '|' + p.name).join('~');
+      if (sel.dataset.sig !== sig) {
+        const keep = sel.value;
+        sel.innerHTML = '<option value="">-- اختر من الأصناف المحفوظة --</option>' +
+          appData.products.map(p => `<option value="${retEsc(p.id)}">${retEsc(p.name)}${hasStock(p) ? ` — في المخزن: ${p.stock}` : ''}</option>`).join('');
+        sel.value = appData.products.some(p => p.id === keep) ? keep : '';
+        sel.dataset.sig = sig;
+      }
+      renderRetItems();
+      renderRetRecent();
+    }
+
+    // ---- salon picker with search
+    function renderReturnSalon() {
+      const chosen = document.getElementById('ret-salon-chosen');
+      const picker = document.getElementById('ret-salon-picker');
+      const salon = appData.salons.find(s => s.id === retSalonId);
+      if (salon) {
+        const bal = Number(salon.balance) || 0;
+        chosen.innerHTML = `
+          <div class="min-w-0">
+            <p class="font-extrabold text-navy-900 truncate">${retEsc(salon.name)}</p>
+            <p class="text-xs font-bold text-slate-500">${retEsc(salon.area || '')} • ${bal > 0 ? `عليه ${formatMoney(bal)} ج.م` : 'حسابه خالص'}</p>
+          </div>
+          <button type="button" onclick="clearReturnSalon()" class="shrink-0 text-xs font-extrabold text-teal-700 bg-white border border-teal-300 px-3 py-2 rounded-xl">تغيير</button>`;
+        chosen.classList.remove('hidden');
+        picker.classList.add('hidden');
+        return;
+      }
+      chosen.classList.add('hidden');
+      picker.classList.remove('hidden');
+      renderReturnSalonList();
+    }
+
+    function renderReturnSalonList() {
+      const list = document.getElementById('ret-salon-list');
+      const norm = window.__normAr || (x => String(x || '').trim().toLowerCase());
+      const q = norm(document.getElementById('ret-salon-search').value || '');
+      const rows = appData.salons.filter(s => !q || norm(String(s.name || '') + ' ' + String(s.area || '')).includes(q));
+      list.innerHTML = rows.length ? rows.map(s => {
+        const bal = Number(s.balance) || 0;
+        return `<button type="button" onclick="selectReturnSalon('${s.id}')" class="w-full text-right px-3.5 py-3 flex items-center justify-between gap-3 hover:bg-slate-50 active:bg-teal-50">
+          <span class="min-w-0"><span class="block text-sm font-extrabold text-navy-900 truncate">${retEsc(s.name)}</span><span class="block text-[11px] font-bold text-slate-400">${retEsc(s.area || '')}</span></span>
+          <span class="text-xs font-extrabold shrink-0 ${bal > 0 ? 'text-rose-600' : 'text-primary-600'}">${bal > 0 ? formatMoney(bal) + ' ج.م' : 'خالص'}</span>
+        </button>`;
+      }).join('') : '<div class="p-5 text-center text-slate-400 text-sm font-bold">مفيش صالون بالاسم ده</div>';
+    }
+
+    function selectReturnSalon(id) {
+      retSalonId = id;
+      document.getElementById('ret-salon-search').value = '';
+      renderReturnSalon();
+      recalcReturn();
+    }
+    function clearReturnSalon() { retSalonId = null; renderReturnSalon(); recalcReturn(); }
+
+    // ---- item input
+    function hideRetSuggest() {
+      const b = document.getElementById('ret-suggest');
+      if (b) { b.classList.add('hidden'); b.innerHTML = ''; }
+    }
+
+    function retSetHint(text, cls) {
+      const h = document.getElementById('ret-item-hint');
+      h.className = text ? 'text-xs font-bold px-1 ' + cls : 'hidden';
+      h.textContent = text || '';
+    }
+
+    function onRetPreset() {
+      const p = appData.products.find(x => x.id === document.getElementById('ret-product-preset').value);
+      if (!p) return;
+      document.getElementById('ret-item-name').value = p.name;
+      retAutoId = null;
+      document.getElementById('ret-item-qty').value = 1;
+      onRetNameInput();
+    }
+
+    function onRetNameInput() {
+      const nameEl = document.getElementById('ret-item-name');
+      const name = nameEl.value.trim();
+      const priceEl = document.getElementById('ret-item-price');
+      const box = document.getElementById('ret-suggest');
+      const prod = findProductByName(name);
+      document.getElementById('ret-product-preset').value = prod ? prod.id : '';
+
+      // similar saved names while typing (not when the typed name is already an exact saved product)
+      const similar = name ? findSimilarProducts(name, 6).filter(p => !prod || p.id !== prod.id) : [];
+      if (similar.length && !prod) {
+        box.innerHTML = '<div class="px-3 py-1.5 text-[11px] font-extrabold text-slate-500 bg-slate-50">أصناف محفوظة شبه اللي بتكتبه:</div>' + similar.map(p => `
+          <button type="button" onpointerdown="event.preventDefault(); pickRetSuggestion('${p.id}')" class="w-full text-right px-3 py-2.5 border-t border-slate-100 hover:bg-slate-50 flex items-center justify-between gap-2">
+            <span class="text-sm font-bold text-navy-900">${retEsc(p.name)}</span>
+            <span class="text-xs font-extrabold text-primary-700 shrink-0">${(p.price === null || p.price === undefined) ? '' : formatMoney(p.price) + ' ج.م'}</span>
+          </button>`).join('');
+        box.classList.remove('hidden');
+      } else hideRetSuggest();
+
+      if (!name) { retAutoId = null; retSetHint('', ''); return; }
+      if (!prod) {
+        retAutoId = null;
+        retSetHint('صنف مش محفوظ: هيتسجل كصنف جديد وكميته هتتحط في المخزن، اكتب سعر الوحدة', 'text-slate-500');
+        return;
+      }
+      if (retAutoId !== prod.id) {
+        retAutoId = prod.id;
+        priceEl.value = (prod.price === null || prod.price === undefined) ? '' : prod.price;
+      }
+      const noPrice = prod.price === null || prod.price === undefined;
+      retSetHint(noPrice
+        ? 'الصنف ده محفوظ بس ملوش سعر بيع، اكتب سعر الوحدة'
+        : `صنف محفوظ: سعر البيع ${formatMoney(prod.price)} ج.م` + (hasStock(prod) ? ` • في المخزن دلوقتي: ${prod.stock} (هتزيد بالمرتجع)` : ' • الكمية مش متتبعة في المخزن'),
+        noPrice ? 'text-amber-700' : 'text-teal-700');
+    }
+
+    function pickRetSuggestion(id) {
+      const p = appData.products.find(x => x.id === id);
+      if (!p) return;
+      document.getElementById('ret-item-name').value = p.name;
+      retAutoId = null;
+      hideRetSuggest();
+      onRetNameInput();
+    }
+
+    function addRetItem() {
+      const nameEl = document.getElementById('ret-item-name');
+      const qtyEl = document.getElementById('ret-item-qty');
+      const priceEl = document.getElementById('ret-item-price');
+      const name = nameEl.value.trim();
+      const qty = parseFloat(qtyEl.value);
+      const price = parseFloat(priceEl.value);
+      if (!name) { showToast('اكتب أو اختار اسم الصنف اللي رجع'); nameEl.focus(); return; }
+      if (isNaN(qty) || qty <= 0) { showToast('الكمية لازم تكون أكتر من صفر'); return; }
+      if (isNaN(price) || price < 0) { showToast('اكتب سعر الوحدة'); priceEl.focus(); return; }
+      const prod = findProductByName(name);
+      const item = { name: prod ? prod.name : name, qty, price };
+      if (prod) item.productId = prod.id;
+      const same = retItems.find(i => i.name === item.name && i.price === item.price);
+      if (same) same.qty += qty; else retItems.push(item);
+      nameEl.value = ''; qtyEl.value = '1'; priceEl.value = '';
+      document.getElementById('ret-product-preset').value = '';
+      retAutoId = null;
+      hideRetSuggest();
+      retSetHint('', '');
+      renderRetItems();
+    }
+
+    function removeRetItem(i) { retItems.splice(i, 1); renderRetItems(); }
+    function clearRetDraft() { retItems = []; document.getElementById('ret-cash').value = ''; renderRetItems(); }
+
+    function renderRetItems() {
+      const box = document.getElementById('ret-items-container');
+      document.getElementById('ret-items-count').textContent = retItems.length;
+      box.innerHTML = retItems.length ? retItems.map((it, i) => `
+        <div class="p-3 flex items-center justify-between gap-2">
+          <div class="min-w-0">
+            <p class="text-sm font-bold text-navy-900 truncate">${retEsc(it.name)}${it.productId ? '' : ' <span class="text-[10px] font-extrabold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">جديد</span>'}</p>
+            <p class="text-xs text-slate-500 font-semibold">${it.qty} × ${formatMoney(it.price)} ج.م</p>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <span class="text-sm font-extrabold text-navy-900">${formatMoney(it.qty * it.price)}</span>
+            <button type="button" onclick="removeRetItem(${i})" class="text-rose-500 bg-white border border-slate-200 rounded-lg px-2.5 py-1 font-extrabold" aria-label="شيل الصنف">✕</button>
+          </div>
+        </div>`).join('') : '<div class="p-6 text-center text-slate-400 text-sm font-semibold">لسه مفيش أصناف مرتجعة</div>';
+      recalcReturn();
+    }
+
+    // ---- money
+    const retTotal = () => retItems.reduce((s, i) => s + i.qty * i.price, 0);
+
+    function retCalc() {
+      const total = retTotal();
+      const salon = appData.salons.find(s => s.id === retSalonId);
+      const balance = salon ? (Number(salon.balance) || 0) : 0;
+      const raw = parseFloat(document.getElementById('ret-cash').value);
+      const cash = isNaN(raw) || raw < 0 ? 0 : raw;
+      const credit = total - cash;
+      const minCash = Math.max(0, total - balance);
+      return { total, salon, balance, cash, credit, minCash, overCash: cash > total + 1e-9, overCredit: !!salon && credit > balance + 1e-9 };
+    }
+
+    function setRetCashFull() { document.getElementById('ret-cash').value = retTotal() || ''; recalcReturn(); }
+    function setRetCashFromAccount() { document.getElementById('ret-cash').value = retCalc().minCash || ''; recalcReturn(); }
+
+    function recalcReturn() {
+      const c = retCalc();
+      document.getElementById('ret-total').textContent = `${formatMoney(c.total)} ج.م`;
+      const box = document.getElementById('ret-summary');
+      if (!c.total) { box.innerHTML = '<p class="text-xs text-slate-500 font-semibold">ضيف الأصناف المرتجعة علشان تتحسب القيمة.</p>'; return; }
+      const row = (l, v, cls = '') => `<div class="flex items-center justify-between ${cls}"><span>${l}</span><span>${v}</span></div>`;
+      let html = row('كاش للصالون', formatMoney(c.cash) + ' ج.م', 'text-primary-700');
+      if (c.overCash) {
+        html += '<p class="text-xs font-extrabold text-rose-600">المبلغ أكبر من قيمة المرتجع</p>';
+      } else {
+        html += row('هيتخصم من حساب الصالون', formatMoney(c.credit) + ' ج.م', 'text-rose-600');
+        if (c.salon) {
+          if (c.overCredit) html += `<p class="text-xs font-extrabold text-rose-600">الصالون عليه ${formatMoney(c.balance)} ج.م بس، لازم تدفعله كاش على الأقل ${formatMoney(c.minCash)} ج.م</p>`;
+          else html += row('الصالون هيبقى عليه', formatMoney(c.balance - c.credit) + ' ج.م', 'text-navy-900');
+        } else html += '<p class="text-xs text-slate-500 font-semibold">اختار الصالون علشان نحسب الخصم من حسابه.</p>';
+      }
+      box.innerHTML = html;
+    }
+
+    // ---- save
+    function saveReturn() {
+      const c = retCalc();
+      if (!c.salon) { showToast('اختار الصالون الأول'); return; }
+      if (!retItems.length) { showToast('ضيف الأصناف اللي رجعت'); return; }
+      if (c.overCash) { showToast('المبلغ الكاش أكبر من قيمة المرتجع'); return; }
+      if (c.overCredit) { showToast(`الصالون عليه ${formatMoney(c.balance)} ج.م بس، ادفعله كاش على الأقل ${formatMoney(c.minCash)} ج.م`); return; }
+
+      const today = localDateISO();
+      const items = [];
+      let created = 0, untracked = 0;
+      retItems.forEach((it, i) => {
+        let prod = it.productId ? appData.products.find(p => p.id === it.productId) : null;
+        if (!prod) prod = findProductByName(it.name);
+        if (!prod) {
+          prod = { id: 'p_' + Date.now() + '_' + i, name: it.name, stock: it.qty, cost: null, price: it.price };
+          appData.products.push(prod);
+          created++;
+        } else if (hasStock(prod)) {
+          prod.stock = Number(prod.stock) + it.qty;
+        } else untracked++;
+        items.push({ name: it.name, qty: it.qty, price: it.price, productId: prod.id });
+      });
+
+      const tx = {
+        id: 'tx_' + Date.now(),
+        type: 'return',
+        salonId: c.salon.id,
+        date: today,
+        timestamp: Date.now(),
+        items,
+        returnValue: c.total,
+        cashRefund: c.cash,
+        creditAmount: c.credit,
+        note: document.getElementById('ret-note').value.trim()
+      };
+      appData.transactions.push(tx);
+      c.salon.balance = Math.max(0, c.balance - c.credit);
+      c.salon.lastTxDate = today;
+
+      retItems = [];
+      document.getElementById('ret-cash').value = '';
+      document.getElementById('ret-note').value = '';
+      saveAppData();
+      showToast('تم تسجيل المرتجع' + (created ? ` وإضافة ${created} صنف جديد للمخزن` : '') + (untracked ? ` (${untracked} صنف كميته مش متتبعة)` : ''));
+    }
+
+    // ---- recent returns (+ delete)
+    function renderRetRecent() {
+      const box = document.getElementById('ret-recent-list');
+      const list = appData.transactions.filter(t => t.type === 'return').sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)).slice(0, 8);
+      box.innerHTML = list.length ? list.map(t => {
+        const sal = appData.salons.find(s => s.id === t.salonId);
+        return `
+          <div class="bg-teal-50/60 border border-teal-200 rounded-2xl p-3.5 space-y-2">
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0">
+                <p class="font-extrabold text-navy-900 truncate">${sal ? retEsc(sal.name) : 'صالون محذوف'}</p>
+                <p class="text-[11px] text-slate-400 font-bold">${t.date}</p>
+              </div>
+              <span class="text-base font-extrabold text-teal-700 shrink-0">${formatMoney(t.returnValue)} ج.م</span>
+            </div>
+            <p class="text-xs text-slate-600 font-semibold leading-relaxed">${(t.items || []).map(i => `${retEsc(i.name)} × ${i.qty}`).join('، ')}</p>
+            <p class="text-xs font-bold text-slate-500">كاش للصالون ${formatMoney(t.cashRefund)} • اتخصم من الحساب ${formatMoney(t.creditAmount)}</p>
+            <button type="button" onclick="deleteReturn('${t.id}')" class="w-full bg-rose-50 text-rose-600 text-xs font-extrabold py-2 rounded-lg">حذف المرتجع</button>
+          </div>`;
+      }).join('') : '<div class="p-4 text-center text-slate-400 text-sm font-bold">لسه مفيش مرتجعات</div>';
+    }
+
+    function deleteReturn(id) {
+      const tx = appData.transactions.find(t => t.id === id && t.type === 'return');
+      if (!tx) return;
+      const sal = appData.salons.find(s => s.id === tx.salonId);
+      const parts = [`هيتم حذف مرتجع ${sal ? sal.name : ''} بقيمة ${formatMoney(tx.returnValue)} ج.م.`];
+      if (Number(tx.creditAmount) > 0) parts.push(`وهيرجع ${formatMoney(tx.creditAmount)} ج.م على حساب الصالون.`);
+      parts.push('وهتتشال كميات الأصناف دي من المخزن. تقدر تتراجع بزرار الرجوع ↩.');
+      document.getElementById('confirm-title').textContent = 'حذف المرتجع؟';
+      document.getElementById('confirm-message').textContent = parts.join(' ');
+      document.getElementById('confirm-yes-btn').onclick = () => {
+        const t = appData.transactions.find(x => x.id === id && x.type === 'return');
+        if (!t) { closeModal('modal-confirm'); return; }
+        const s2 = appData.salons.find(s => s.id === t.salonId);
+        if (s2) s2.balance = (Number(s2.balance) || 0) + (Number(t.creditAmount) || 0);
+        (t.items || []).forEach(it => {
+          const p = appData.products.find(x => x.id === it.productId);
+          if (hasStock(p)) p.stock = Math.max(0, Number(p.stock) - (Number(it.qty) || 0));
+        });
+        appData.transactions = appData.transactions.filter(x => x.id !== id);
+        saveAppData();
+        closeModal('modal-confirm');
+        showToast('تم حذف المرتجع');
+      };
+      document.getElementById('modal-confirm').classList.remove('hidden');
     }
 
     // ==================== MODALS & BACKUP HELPERS ====================
